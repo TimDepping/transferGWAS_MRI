@@ -17,8 +17,15 @@ from torchvision import transforms, models
 TRANSFORMATION_MEAN = [0.485, 0.456, 0.406]
 TRANSFORMATION_STD = [0.229, 0.224, 0.225]
 
+import debugpy
+
 
 def main():
+    # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
+    debugpy.listen(5678)
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'img_csv',
@@ -259,10 +266,9 @@ def load_layers(model, layers):
         lf = LAYERS_RES18
     lfs = []
     for layer in layers:
+        layer_func = lambda m, l_str=layer: dict(m.named_modules())[l_str]
         if layer in ['L1', 'L2', 'L3', 'L4']:
             layer_func = lf[int(layer[1]) - 1]
-        else:
-            layer_func = lambda m, l_str=layer: dict(m.named_modules())[l_str]
         lfs.append(layer_func)
     return lfs
 
@@ -385,7 +391,8 @@ class ImageData(Dataset):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
         p = self.path[idx]
-        img = Image.open(p)
+        img = Image.open(p).convert('RGB')
+        debugpy.breakpoint()
         if self.tfms:
             img = self.tfms(img)
         return img
