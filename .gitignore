@@ -1,1 +1,3 @@
-heart_images/
+heart_images/*
+heart_dicom_images/*
+out_dir/*

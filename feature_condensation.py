@@ -22,9 +22,9 @@ import debugpy
 
 def main():
     # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
-    debugpy.listen(5678)
-    print("Waiting for debugger attach")
-    debugpy.wait_for_client()
+    # debugpy.listen(5678)
+    # print("Waiting for debugger attach")
+    # debugpy.wait_for_client()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -392,7 +392,6 @@ class ImageData(Dataset):
             idx = idx.item()
         p = self.path[idx]
         img = Image.open(p).convert('RGB')
-        debugpy.breakpoint()
         if self.tfms:
             img = self.tfms(img)
         return img
