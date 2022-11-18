@@ -9,15 +9,12 @@ import debugpy
 import imageio
 
 directory = '/dhc/projects/ukbiobank/original/imaging/heart_mri/lax/archive'
-output_dir = '/dhc/home/tim.depping/GitHub/master_project/heart_dicom_files'
+output_dir = './heart_dicom_export'
 output_file_name = "heart_dicom_files"
 counter = 0
-max_counter = 2000
+max_counter = 100
 
-# debugpy.listen(5678)
-# print("Waiting for debugger attach")
-# debugpy.wait_for_client()
-
+os.makedirs(output_dir, exist_ok=True)
 for patient_file_name in os.listdir(directory):
     if patient_file_name.endswith(".zip"):
         counter += 1

@@ -2,42 +2,31 @@ import os
 import io
 import zipfile
 from pydicom.filereader import dcmread
-import cv2
 import numpy as np
 from os.path import basename
-import debugpy
 import imageio
 
 directory = '/dhc/projects/ukbiobank/original/imaging/heart_mri/lax/archive'
-output_dir = '/dhc/home/tim.depping/GitHub/master_project/heart_images/'
-output_file_name = "images"
+output_dir = './heart_image_export'
+output_file_name = "heart_image_files"
 counter = 0
-max_counter = 1
+max_counter = 100
 
-debugpy.listen(5678)
-print("Waiting for debugger attach")
-debugpy.wait_for_client()
-
-for filename in os.listdir(directory):
-    f = os.path.join(directory, filename)
-    if filename.endswith(".zip"):
+os.makedirs(output_dir, exist_ok=True)
+for patient_file_name in os.listdir(directory):
+    if patient_file_name.endswith(".zip"):
         counter += 1
-        archive = zipfile.ZipFile(f, 'r')
-        ds = dcmread(io.BytesIO(archive.read(archive.filelist[0])))
-        img = ds.pixel_array
-        img = np.array(img, dtype = float) 
-        img = (img - img.min()) / (img.max() - img.min()) * 255.0  
-        img = img.astype(np.uint8)
-        # new_img = np.zeros_like(img, dtype=np.uint16)
-        # for iy, ix in np.ndindex(img.shape):
-        #     new_img[iy][ix] = img[iy][ix]
-        #     print(type(img[iy][ix]))
-        png_filename = f'{output_dir}{filename}_f1.png'.replace('.zip', '')
-        # test_img = np.arange(34944,dtype=np.uint16).reshape(168,208)
-        debugpy.breakpoint()
-        print(png_filename)
-        imageio.imwrite(png_filename,img) 
-        # cv2.imwrite(png_filename,test_img) 
+        archive = zipfile.ZipFile(os.path.join(directory, patient_file_name), 'r')
+        for index, imaging_file in enumerate(archive.filelist):
+            if imaging_file.filename.endswith(".dcm"):
+                ds = dcmread(io.BytesIO(archive.read(imaging_file)))
+                if ds.SeriesDescription == 'CINE_segmented_LAX_4Ch':
+                    img = np.array(ds.pixel_array, dtype = float)
+                    img = (img - img.min()) / (img.max() - img.min()) * 255.0  
+                    img = img.astype(np.uint8)
+                    png_filename = f'{output_dir}/{patient_file_name}_f1.png'.replace('.zip', '')
+                    imageio.imwrite(png_filename,img)
+                    break
     if counter == max_counter:
         break
 

@@ -40,7 +40,6 @@ def main():
         default='results',
         help='Directory to save the results',
     )
-    # TODO: Is this the path to the images on the DHC server?
     parser.add_argument(
         '--base_img_dir',
         type=str,
@@ -291,24 +290,23 @@ def compute_embeddings(
     num_threads (int): how many torch CPU-threads
     '''
     torch.set_num_threads(num_threads)
-
     output = [[] for _ in layer_funcs]
     hooks = []
     for idx, layer_func in enumerate(layer_funcs):
         hook = layer_func(model).register_forward_hook(
             lambda m, i, o, idx=idx: output[idx].append(o.detach()))
         hooks.append(hook)
-
+    
     tmp_img = dset[0][0]
     if len(tmp_img.shape) == 3:
         tmp_img.unsqueeze_(0)
     n_tfm = tmp_img.shape[0]
     _ = model(tmp_img.to(dev))
     shapes = [out[0].shape[1] * n_tfm for out in output]
+    # TODO: Why clear output array items?
     for i in range(len(output)): output[i] = []
 
     embeddings = [np.empty((len(dset), shape)) for shape in shapes]
-
     for sample_idx, (img, iid) in tqdm(enumerate(dset), total=len(dset)):
         with torch.no_grad():
             if len(img.shape) == 3:
