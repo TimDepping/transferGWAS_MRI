@@ -3,3 +3,4 @@ heart_image_export/*
 heart_dicom_export/*
 heart_image_files.zip
 heart_dicom_files.zip
+*.log
