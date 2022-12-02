@@ -182,7 +182,7 @@ def main():
         log_file = join(out_dir, 'log', out_fn % pc + '.log')
         if run_imputed:
             configs['statsFileBgenSnps'] = join(out_dir, out_imp % pc)
-
+            
         run_single_bolt(bolt, flags, covars, qcovars, remove, log_file, **configs)
 
 
@@ -254,11 +254,12 @@ def INT(x, method='average', c=3./8):
 
 def check_bolt(pth):
     if not pth:
-        pth = '../BOLT-LMM_v2.3.4'
+        pth = './BOLT-LMM_v2.3.4'
     if not os.path.isdir(pth):
-        b_tgz = '../bolt.tar.gz'
+        b_tgz = './bolt.tar.gz'
         print('downloading BOLT-LMM ...')
-        request = requests.get('https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4.tar.gz')
+        # TODO: Check for new version
+        request = requests.get('https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/old/BOLT-LMM_v2.3.4.tar.gz')
         open(b_tgz, 'wb').write(request.content)
         print('finished download')
         tar = tarfile.open(b_tgz, 'r:gz')

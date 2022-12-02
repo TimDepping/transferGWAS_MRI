@@ -12,15 +12,15 @@ def main():
 
     columns = {
             '31-0.0':       'sex',                  # sex
-            '21022-0.0':    'age',                  # age at recruitment
-            '54-0.0':       'assessment_center',    # assessment center
-            '22000-0.0':    'geno_batch',           # genotyping batch
+            # '21022-0.0':    'age',                  # age at recruitment
+            # '54-0.0':       'assessment_center',    # assessment center
+            # '22000-0.0':    'geno_batch',           # genotyping batch
             # '20116-0.0',    # smoking status, self-reported touchscreen
             # '21000-0.0',    # ethnic background, self-reported touchscreen
             }
 
-    for i in range(1, 41):
-        columns[f'22009-0.{i}'] = f'genet_PC_{i}'
+    # for i in range(1, 41):
+    #     columns[f'22009-0.{i}'] = f'genet_PC_{i}'
 
     if args.add_cov:
         for key, val in args.add_cov:
@@ -33,7 +33,7 @@ def main():
     df.rename(columns, axis=1, inplace=True)
 
     # binarize genotyping batch
-    df.geno_batch = 1*(df.geno_batch > 0)
+    # df.geno_batch = 1*(df.geno_batch > 0)
 
     if args.indiv:
         indiv = pd.read_csv(args.indiv, sep=' ', header=None)[0].values

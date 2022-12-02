@@ -6,46 +6,50 @@ model = "lmmInfOnly"
 
 # path to embedding file (output of `export_embeddings.py`)
 # space-separated, first two columns should be `FID` and `IID`, then `PC_0`, `PC_1`, ...
-phenoFile = "path/to/condensed/embeddings.txt"
+phenoFile = "output/resnet50_imagenet_L4.txt"
 
 # path to covariate file
 # space-sperataed, first two columns should be `FID` and `IID`, then the covariates
-covarFile = "covariates.txt"
+covarFile = "output/covariates.txt"
 
 # list of categorical covariates to adjust for, as in `covarFile`
-covColumns = [ "sex", "assessment_center", "geno_batch" ]
+# covColumns = [ "sex", "assessment_center", "geno_batch" ]
+covColumns = [ "sex" ]
 # list of quantitative covariates to adjust for, as in `covarFile`
-qCovColumns = [ "age", "genet_PC_{1:10}" ]
+# qCovColumns = [ "age", "genet_PC_{1:10}" ]
+qCovColumns = [ ]
 
 # run BOLT-LMM on all PCs with firstPC <= PC <= lastPC
 firstPC = 0
-lastPC = 9
+lastPC = 1
 
 # whether to inverse-normal rank-transform the input data, either:
 #   '' (no INT),
 #   'marginal' (perform INT on phenotypes) or
 #   'adjusted' (perform INT on residuals after correcting for confounders)
-INT = 'adjusted'
+# INT = 'adjusted'
+INT = ''
 
 # where to save the results
-outputDirectory = "results"
+outputDirectory = "output/lmm/results"
 outputFn = 'PC_%d.txt'
 outputFnImp = 'PC_%d.imp.txt'
 
 # keep empty to automatically download into new directory "BOLT-LMM_v2.3.4"
-boltDirectory = "../"
-# adjust if using different location,  different map or individuals with different ancestry
-geneticMapFile = "../BOLT-LMM_v2.3.4/tables/genetic_map_hg19_withX.txt.gz"
-LDscoresFile = "../BOLT-LMM_v2.3.4/tables/LDSCORE.1000G_EUR.tab.gz"
+boltDirectory = ""
+# adjust if using different location, different map or individuals with different ancestry
+geneticMapFile = "./BOLT-LMM_v2.3.4/tables/genetic_map_hg19_withX.txt.gz"
+LDscoresFile = "./BOLT-LMM_v2.3.4/tables/LDSCORE.1000G_EUR.tab.gz"
 
 # file or list of files with IID to remove from analysis
 remove = ""
 
 # bed files; multiple files for different chromosomes can be specified as indicated
-bed = "path/to/bed/chr{1:22}.bed"
-bim = "path/to/bed/chr{1:22}.bim"
+bed = "output/lmm/preprocessing_ma_output/chr{1:22}.bed"
+bim = "output/lmm/preprocessing_ma_output/chr{1:22}.bim"
 # note that only a single .fam file is permitted
-fam = "path/to/bed/chr1.fam"
+# TODO: Check if this is the correct fam file
+fam = "lmm/preprocessing_ma_output/chr1.fam"
 
 # filter missing values
 maxMissingPerSnp = 0.1
