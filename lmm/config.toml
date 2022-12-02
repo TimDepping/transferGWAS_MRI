@@ -49,7 +49,7 @@ bed = "output/lmm/preprocessing_ma_output/chr{1:22}.bed"
 bim = "output/lmm/preprocessing_ma_output/chr{1:22}.bim"
 # note that only a single .fam file is permitted
 # TODO: Check if this is the correct fam file
-fam = "lmm/preprocessing_ma_output/chr1.fam"
+fam = "output/lmm/preprocessing_ma_output/chr1.fam"
 
 # filter missing values
 maxMissingPerSnp = 0.1

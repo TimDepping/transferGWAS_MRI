@@ -13,6 +13,9 @@ date
 hostname -f
 nproc
 nvidia-smi
-source activate transfer_gwas 
+source activate transfer_gwas
 
-sh /dhc/home/tim.depping/GitHub/master_project/main.sh
+eval "$(conda shell.bash hook)"
+conda activate transfer_gwas
+
+python lmm/run_lmm.py --config lmm/config.toml
