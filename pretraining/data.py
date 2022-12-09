@@ -10,8 +10,19 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset
 from torchvision import transforms
 
+'''
+3 data classes (MriData, AutoMriData, and ClassificationMriData) representing datasets of MRI Data.
+Subclasses of PyTorch's Dataset class.
+The subset argument can be used to limit the number of items in the dataset (usefull for debugging).
+'''
 
+'''
+Generic base class for AutoMriData and ClassificationMriData for basic functionality.
+Overwrites __len__ / __getitem__ to implement basic functionality of loading and preprocessing images and labels.
+Returns img and label.
+'''
 class MriData(Dataset):
+    # Constructor
     def __init__(
         self, path_col, label_col, tfms=None, subset=100, target_dtype=np.float32
     ):
@@ -22,9 +33,11 @@ class MriData(Dataset):
         self.tfms = tfms
         self.target_dtype = target_dtype
 
+    # Number of data samples in the dataset
     def __len__(self):
         return len(self.df)
 
+    # loads a data sample, transforms it (for the quick fix)
     def _load_item(self, idx):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
@@ -32,26 +45,28 @@ class MriData(Dataset):
         label = self.df.iloc[idx][self.label_col].astype(self.target_dtype)
 
         img = Image.open(p)
-        ## Test
-        ## for MRI -> Quickfix: convert + resize
+        ## Quickfix for first run: convert + resize
         img = img.convert(('RGB'))
         img = img.resize((244, 244))
         return img, label
 
+    # loads a item lable using load_item and transforms it 
     def __getitem__(self, idx):
         img, label = self._load_item(idx)
         if self.tfms:
-            ## something goes wrong here
-            # output with shape [1, 448, 535] doesn't match the broadcast shape [3, 448, 535] -> fix in load data
             img = self.tfms(img)
         return img, label
-
-    def get_original_img(self, idx):
+    
+"""     def get_original_img(self, idx):
         img, label = self._load_item(idx)
         print("class label: %s, img shape: %s" % (label, img.size))
-        return img, label
+        return img, label """
 
 
+'''
+Subclass of MriData specifically designed for use with autoencoders.
+Returns only img as input and the target for each data sample (overrides methods of base class)
+'''
 class AutoMriData(MriData):
     def __init__(self, img_dir, labels_path, tfms=None, subset=100):
         ds = ClassificationMriData(
@@ -84,18 +99,16 @@ class AutoMriData(MriData):
             img = self.tfms(img)
         return img, img
 
-
+'''
+Subclass of MriData designed for use with classification models.
+Creates a df containing the paths to the images and their labels.
+'''
 class ClassificationMriData(MriData):
     def __init__(
         self, img_dir, labels_path, tfms=None, subset=100, target_dtype=np.float32
     ):
+        # df contains image names + label (e.g.1000096_f1,2.6)
         df = pd.read_csv(labels_path)
-        ## TODO: Here you need to switch to png if we read in pngs. 
-
-        ## Retina:
-        # df.image = [join(img_dir, p + ".jpeg") for p in df.image]
-
-        ## MRI
         df.image = [join(img_dir, p + ".png") for p in df.image]
         self.df = df[:subset]
         # self.df = df.drop([1146,])[:subset]
@@ -110,10 +123,16 @@ class ClassificationMriData(MriData):
         )
 
 
+'''
+Returns Transform Objects.
+Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor (Scaling), Normalization
+Test: Resizing, ToTensor (Scaling), Normalization
+'''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
     norm = transforms.Normalize(mean=mean, std=std)
+
     train = transforms.Compose(
         [
             transforms.RandomRotation(degrees=180, resample=interpolation),
@@ -132,7 +151,9 @@ def get_tfms(size=224, interpolation=Image.BILINEAR):
 
     return train, valid
 
-
+'''
+Returns two DoataLoader Objects (training and validation)
+'''
 def build_mri_dataset(
     img_dir,
     labels_path,
@@ -140,11 +161,15 @@ def build_mri_dataset(
     size=224,
     batch_size=32,
     num_workers=12,
+    # Split data into training and validation based on this parameter
     train_pct=0.8,
     subset=None,
     seed=123,
 ):
+    # get transformation information
     train_tfm, valid_tfm = get_tfms(size=size, interpolation=Image.BILINEAR)
+
+    # Create Dataset for Classification and AE
     if ae:
         train_ds = AutoMriData(
             img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
@@ -160,16 +185,18 @@ def build_mri_dataset(
             img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
         )
 
+    # Split into training and validation set
     m = len(train_ds)
     cut = int(train_pct * m)
     torch.manual_seed(seed)
     inds = torch.randperm(m)
-
     train_inds = inds[:cut]
     valid_inds = inds[cut:]
-
+    # shuffel images randomly
     train_sampler = SubsetRandomSampler(train_inds)
     valid_sampler = SubsetRandomSampler(valid_inds)
+
+    # Create the dataLoaders for train and val
     train_loader = DataLoader(
         train_ds, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers,
     )
@@ -177,4 +204,5 @@ def build_mri_dataset(
         valid_ds, batch_size=batch_size, sampler=valid_sampler, num_workers=num_workers,
     )
 
+    # Returns two DataLoader objects (Training and Validation)
     return train_loader, valid_loader

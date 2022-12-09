@@ -32,8 +32,7 @@ def main():
     # debugpy.wait_for_client()
 
     parser = argparse.ArgumentParser()
-    ## TODO: Adapt png input 
-    parser.add_argument("img_dir", type=str, help="path to EyePACs dataset")
+    parser.add_argument("img_dir", type=str, help="path to MRI dataset (pngs)")
     parser.add_argument("labels", type=str, help="path to full labels csv")
     parser.add_argument("--epochs", dest="epochs", default=100, type=int)
     parser.add_argument(
@@ -44,7 +43,6 @@ def main():
         type=int,
         help="depth of ResNet body",
     )
-    ## TODO: Check, how are the sizes handled in this script?
     parser.add_argument(
         "--size",
         dest="size",
@@ -76,16 +74,14 @@ def main():
     )
     args = parser.parse_args()
 
+    ## TODO: Why 2048 neurons?
     n_neurons = 2048 if args.res_depth == 50 else 512
     train_pct = 0.8
 
     configs = get_configs(
         img_dir=args.img_dir,
         labels_path=args.labels,
-        ## TODO: Change subset, MRI
-        # subset=2000,
-
-        ## Retina
+        ## Change subset according to your needs
         subset=5,
         size=args.size,
         bs=args.bs,
@@ -118,7 +114,8 @@ def get_configs(
 ):
     configs = []
 
-    
+    # We create two configs, one for our classification task, one for our Autoencoder (AE).
+
     train_loader, valid_loader = build_mri_dataset(
         img_dir=img_dir,
         labels_path=labels_path,
@@ -131,8 +128,8 @@ def get_configs(
         seed=123,
     )
     configs.append(
-        {   ## TODO: Change to Classification MRI 
-            "name": "Diabetic Retinopathy - MSE",
+        {   
+            "name": "MRI Classification - MSE",
             "train_loader": train_loader,
             "valid_loader": valid_loader,
             "head": nn.Sequential(
@@ -143,7 +140,6 @@ def get_configs(
         }
     )
 
-    ## autoencoder
     train_loader, valid_loader = build_mri_dataset(
         img_dir=img_dir,
         labels_path=labels_path,
@@ -262,7 +258,7 @@ def train_one_epoch(model, configs, opt, scheduler=None, dev="cuda:0"):
     - updates the learning rate using the provided scheduler
     '''
     
-    # If batch size = 10 -> 8 for training, 2 for validation TODO: look up data.py to find out where this is managed.
+    # Train/val split is managed by train_pct
     # batches: training data for each head of the model ((inputs1, targets1), (inputs2, targets2))
     for i, batches in pbar:
         # inp: training data for a single head of the model (no of training data, number of channels, heigt, width)
