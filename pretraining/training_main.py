@@ -18,8 +18,8 @@ import debugpy
 WANDB = True
 if WANDB:
     import wandb
-
     PROJECT_NAME = "MRI_first_test_run"
+    PROJECT_NOTES = "Preprocessed images 94 / Trained on Ejection Fraction"
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
@@ -82,7 +82,7 @@ def main():
         img_dir=args.img_dir,
         labels_path=args.labels,
         ## Change subset according to your needs
-        subset=5,
+        subset=94,
         size=args.size,
         bs=args.bs,
         num_workers=args.num_workers,
@@ -115,7 +115,6 @@ def get_configs(
     configs = []
 
     # We create two configs, one for our classification task, one for our Autoencoder (AE).
-
     train_loader, valid_loader = build_mri_dataset(
         img_dir=img_dir,
         labels_path=labels_path,
@@ -176,7 +175,8 @@ def train(
     # start_from=1,
 ):
     if WANDB:
-        wandb.init(project=PROJECT_NAME)
+        wandb.init(project=PROJECT_NAME, notes=PROJECT_NOTES)
+        
 
     model = ResNetFeatures(resnet=res_depth)
     model = model.to(dev)

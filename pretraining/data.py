@@ -41,13 +41,11 @@ class MriData(Dataset):
     def _load_item(self, idx):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
-        p = self.df.iloc[idx][self.path_col]
+    
+        path = self.df.iloc[idx][self.path_col]
         label = self.df.iloc[idx][self.label_col].astype(self.target_dtype)
-
-        img = Image.open(p)
-        ## Quickfix for first run: convert + resize
-        img = img.convert(('RGB'))
-        img = img.resize((244, 244))
+        
+        img = Image.open(path)
         return img, label
 
     # loads a item lable using load_item and transforms it 
@@ -57,10 +55,10 @@ class MriData(Dataset):
             img = self.tfms(img)
         return img, label
     
-"""     def get_original_img(self, idx):
-        img, label = self._load_item(idx)
-        print("class label: %s, img shape: %s" % (label, img.size))
-        return img, label """
+    # def get_original_img(self, idx):
+        # img, label = self._load_item(idx)
+        # print("class label: %s, img shape: %s" % (label, img.size))
+        # return img, label 
 
 
 '''
@@ -86,11 +84,7 @@ class AutoMriData(MriData):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
         p = self.df.iloc[idx][self.path_col]
-
         img = Image.open(p)
-        ## quick fix 
-        img = img.convert(('RGB'))
-        img = img.resize((244, 244))
         return img, None
 
     def __getitem__(self, idx):
@@ -116,12 +110,11 @@ class ClassificationMriData(MriData):
             path_col="image",
             # label_col="level",
             ##MRI
-            label_col="Cardiac Index",
+            label_col="Ejection Fraction",
             tfms=tfms,
             subset=subset,
             target_dtype=target_dtype,
         )
-
 
 '''
 Returns Transform Objects.
@@ -129,8 +122,12 @@ Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor 
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225]
+    ## First 100 png images
+    mean = [0.1843, 0.1852, 0.1796] 
+    std = [0.1545, 0.1580, 0.1568]
+    ## ImgNet mean and std
+    # mean = [0.485, 0.456, 0.406]
+    # std = [0.229, 0.224, 0.225]
     norm = transforms.Normalize(mean=mean, std=std)
 
     train = transforms.Compose(
