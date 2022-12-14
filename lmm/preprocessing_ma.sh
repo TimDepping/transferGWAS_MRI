@@ -8,10 +8,10 @@ INDIV=indiv.txt
 
 # very soft filtering parameters:
 # minor allele frequency
-MAF=0.001
+MAF=0.001 # 0.01
 
 # Hardy-Weinberg p-value
-HWE_PVAL=0.001
+HWE_PVAL=0.001 # set down 10-6
 
 # LD-pruning, R^2, window-size & number of steps (see plink2 documentation for details)
 LD_THRESHOLD=0.8 # paires greater this value are pruned 
