@@ -21,7 +21,7 @@ qCovColumns = [ ]
 
 # run BOLT-LMM on all PCs with firstPC <= PC <= lastPC
 firstPC = 0
-lastPC = 1
+lastPC = 9
 
 # whether to inverse-normal rank-transform the input data, either:
 #   '' (no INT),
@@ -56,7 +56,7 @@ maxMissingPerSnp = 0.1
 maxMissingPerIndiv = 0.1
 
 # number of threads to use; using more than cores available will slow down processing
-numThreads = 30
+numThreads = 64
 
 runImputed = false
 # bgen & sample files
