@@ -29,7 +29,8 @@ def resample_spacing(image):
 def crop_to_square(image):
     extractor = sitk.ExtractImageFilter()
     width, height = image.GetSize()
-    square_size = min(width, height, 224)
+    # square_size = min(width, height, 224)
+    square_size = 224
     extractor.SetSize([square_size, square_size])
     middle_index = [width / 2, height / 2]
     half_square_size = int(square_size / 2)
@@ -76,75 +77,81 @@ def main():
     
     img_csv = []
     counter = 0
+    error_counter = 0
     for patient_file_name in os.listdir(args.input_dir):
         if patient_file_name.endswith(".zip"):
             patient_id = patient_file_name.split("_")[0]
-            # print(f'patient: {patient_id}')
+            print(f'Patient {counter}: {patient_id}')
             with zipfile.ZipFile(os.path.join(args.input_dir, patient_file_name),'r') as patient_archive:
-                patient_temp_dir = f'{args.temp_dir}/{patient_id}'
-                patient_archive.extractall(f'{patient_temp_dir}')
-                series_ids = sitk.ImageSeriesReader.GetGDCMSeriesIDs(patient_temp_dir)
-                for series_id in series_ids:
-                    series_reader = sitk.ImageSeriesReader()
-                    series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(patient_temp_dir, series_id)
-                    series_reader.SetFileNames(series_file_names)
-                    series_reader.MetaDataDictionaryArrayUpdateOn()
-                    # series_reader.LoadPrivateTagsOn()
-                    images = series_reader.Execute()
-                    series_description_key = '0008|103e'
-                    series_description = series_reader.GetMetaData(0, series_description_key)
+                try:
+                    patient_temp_dir = f'{args.temp_dir}/{patient_id}'
+                    patient_archive.extractall(f'{patient_temp_dir}')
+                    series_ids = sitk.ImageSeriesReader.GetGDCMSeriesIDs(patient_temp_dir)
+                    for series_id in series_ids:
+                        series_reader = sitk.ImageSeriesReader()
+                        series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(patient_temp_dir, series_id)
+                        series_reader.SetFileNames(series_file_names)
+                        series_reader.MetaDataDictionaryArrayUpdateOn()
+                        # series_reader.LoadPrivateTagsOn()
+                        images = series_reader.Execute()
+                        series_description_key = '0008|103e'
+                        series_description = series_reader.GetMetaData(0, series_description_key)
 
-                    if series_description == 'CINE_segmented_LAX_4Ch':
-                        if args.export_RGB_from_indices:
-                            image_1 = images[:, :, indices[0]]
-                            image_2 = images[:, :, indices[1]]
-                            image_3 = images[:, :, indices[2]]
-                            image_2_resampled = sitk.Resample(image_2, image_1)
-                            image_3_resampled = sitk.Resample(image_3, image_1)
-                            image = sitk.Compose([image_1, image_2_resampled, image_3_resampled])
-                            image = resample_spacing(image)
+                        if series_description == 'CINE_segmented_LAX_4Ch':
+                            if args.export_RGB_from_indices:
+                                image_1 = images[:, :, indices[0]]
+                                image_2 = images[:, :, indices[1]]
+                                image_3 = images[:, :, indices[2]]
+                                image_2_resampled = sitk.Resample(image_2, image_1)
+                                image_3_resampled = sitk.Resample(image_3, image_1)
+                                image = sitk.Compose([image_1, image_2_resampled, image_3_resampled])
+                                image = resample_spacing(image)
 
-                            image = sitk.RescaleIntensity(image, 0, 255)
-                            image = sitk.Cast(image, sitk.sitkVectorUInt8)
-                            image = crop_to_square(image)
-                            
-                            # print('origin: ' + str(image.GetOrigin()))
-                            # print('size: ' + str(image.GetSize()))
-                            # print('spacing: ' + str(image.GetSpacing()))
-                            # print('direction: ' + str(image.GetDirection()))
-                            # print('pixel type: ' + str(image.GetPixelIDTypeAsString()))
-                            # print('number of pixel components: ' + str(image.GetNumberOfComponentsPerPixel()))
-
-                            indices_text = '-'.join(map(str,indices))
-                            file_name = f'{patient_id}_{series_description}_RGB_{indices_text}.{args.export_format}'
-                            writer = sitk.ImageFileWriter()
-                            writer.SetFileName(f'{args.output_dir}/{file_name}')
-                            writer.Execute(image)
-                            img_csv.append({'IID': patient_id, 'path': file_name})
-                        else:
-                            for i in range(images.GetDepth()):
-                                if len(indices) != 0 and i not in indices:
-                                    continue
-                                image = images[:, :, i]
-
-                                # Preprare output directory.
-                                patient_output_dir = args.output_dir
-                                if args.create_subdirs:
-                                    patient_output_dir = f'{args.output_dir}/{patient_id}'
-                                    os.makedirs(patient_output_dir, exist_ok=True)
-                                file_name = f'{patient_id}_{series_description}_{i}.{args.export_format}'
-                                file_output_path = f'{patient_output_dir}/{file_name}'
-
-                                if args.export_format == 'png':
-                                    image = preprocess_dicom_to_png(image)
+                                image = sitk.RescaleIntensity(image, 0, 255)
+                                image = sitk.Cast(image, sitk.sitkVectorUInt8)
+                                image = crop_to_square(image)
                                 
+                                # print('origin: ' + str(image.GetOrigin()))
+                                # print('size: ' + str(image.GetSize()))
+                                # print('spacing: ' + str(image.GetSpacing()))
+                                # print('direction: ' + str(image.GetDirection()))
+                                # print('pixel type: ' + str(image.GetPixelIDTypeAsString()))
+                                # print('number of pixel components: ' + str(image.GetNumberOfComponentsPerPixel()))
+
+                                indices_text = '-'.join(map(str,indices))
+                                file_name = f'{patient_id}_{series_description}_RGB_{indices_text}.{args.export_format}'
                                 writer = sitk.ImageFileWriter()
-                                writer.SetFileName(file_output_path)
+                                writer.SetFileName(f'{args.output_dir}/{file_name}')
                                 writer.Execute(image)
-                                img_csv.append({'IID': patient_id,
-                                                'path': f'{patient_id}/{file_name}' if args.create_subdirs else file_name,
-                                                'instance': i})
-            counter += 1
+                                img_csv.append({'IID': patient_id, 'path': file_name})
+                            else:
+                                for i in range(images.GetDepth()):
+                                    if len(indices) != 0 and i not in indices:
+                                        continue
+                                    image = images[:, :, i]
+
+                                    # Preprare output directory.
+                                    patient_output_dir = args.output_dir
+                                    if args.create_subdirs:
+                                        patient_output_dir = f'{args.output_dir}/{patient_id}'
+                                        os.makedirs(patient_output_dir, exist_ok=True)
+                                    file_name = f'{patient_id}_{series_description}_{i}.{args.export_format}'
+                                    file_output_path = f'{patient_output_dir}/{file_name}'
+
+                                    if args.export_format == 'png':
+                                        image = preprocess_dicom_to_png(image)
+                                    
+                                    writer = sitk.ImageFileWriter()
+                                    writer.SetFileName(file_output_path)
+                                    writer.Execute(image)
+                                    img_csv.append({'IID': patient_id,
+                                                    'path': f'{patient_id}/{file_name}' if args.create_subdirs else file_name,
+                                                    'instance': i})
+                    counter += 1
+                    shutil.rmtree(patient_temp_dir)
+                except:
+                    error_counter += 1
+                    print(f'An error occured for patient: {patient_id}. Number of errors occured: {error_counter}.')
         if counter == args.number_of_patients:
             break
     shutil.rmtree(args.temp_dir)
@@ -160,6 +167,8 @@ def main():
 
     if args.create_zip:
         shutil.make_archive(f'{output_path.absolute()}', 'zip', output_path)
+
+    print(f'Number of errors occured: {error_counter}.')
 
 if __name__ == "__main__":
     main()

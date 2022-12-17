@@ -1,6 +1,7 @@
 *.log
-.tmp
+.tmp*
 BOLT-LMM_v2.3.4
 input/image_files
 output
 pretraining/wandb
+log*
