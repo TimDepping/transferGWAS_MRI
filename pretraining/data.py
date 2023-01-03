@@ -122,9 +122,18 @@ Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor 
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
+    ## First 50000 images 
+    mean = [0.1886, 0.1880, 0.1834]
+    std = [0.1593, 0.1616, 0.1622]
+    ## First 3000 images 
+    # mean = [0.1880, 0.1876, 0.1829]
+    # std = [0.1586, 0.1612, 0.1616]
+    ## First 1000 images 
+    # mean = [0.1874, 0.1870, 0.1825]
+    # std = [0.1584, 0.1611, 0.1617]
     ## First 100 png images
-    mean = [0.1843, 0.1852, 0.1796] 
-    std = [0.1545, 0.1580, 0.1568]
+    # mean = [0.1843, 0.1852, 0.1796] 
+    # std = [0.1545, 0.1580, 0.1568]
     ## ImgNet mean and std
     # mean = [0.485, 0.456, 0.406]
     # std = [0.229, 0.224, 0.225]
