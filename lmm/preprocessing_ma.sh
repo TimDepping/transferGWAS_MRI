@@ -2,9 +2,9 @@
 
 alias plink2=/dhc/projects/mpws2022cl1/plink2
 
-INDIV=indiv.txt
-
-
+OUTPUT_DIR=$1
+INDIV=$2
+TMP_DIR=$OUTPUT_DIR/.tmp
 
 # very soft filtering parameters:
 # minor allele frequency
@@ -18,14 +18,10 @@ LD_THRESHOLD=0.8 # paires greater this value are pruned
 LD_WINDOW="500 kb"
 LD_STEP=1
 
-
-
-TMP_DIR=${PWD}/.tmp/
-OUTPUT_DIR=${PWD}/output/lmm/preprocessing_ma_output/
 rm -r ${TMP_DIR}
 rm -r ${OUTPUT_DIR}
-mkdir ${TMP_DIR}
-mkdir ${OUTPUT_DIR}
+mkdir -p ${TMP_DIR}
+mkdir -p ${OUTPUT_DIR}
 
 for i in {1..22}; do
     INPUT="/dhc/projects/ukbiobank/original/genetics/microarray/unzipped/ukb_chr${i}_v2"
