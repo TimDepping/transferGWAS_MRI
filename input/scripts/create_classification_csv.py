@@ -22,16 +22,21 @@ def main():
     df = import_data.loc[:, ['eid', label_code]].rename(columns={'eid': 'image', label_code: label})
     df = df.dropna(subset=[label])
 
-    # Remove outliers below and above 1.5x IQR below Q1 and above Q3
-    stats = df[label].describe()
-    IQR = stats['75%'] - stats['25%']
+    # Remove outliers below and above 1.5x IQR below Q1 and above Q3 for Cardiac Index
+    if label == 'Cardiac Index':
+        stats = df[label].describe()
+        IQR = stats['75%'] - stats['25%']
 
-    lower_cutoff = stats['25%'] - 1.5*IQR
-    upper_cutoff = stats['75%'] + 1.5*IQR
+        lower_cutoff = stats['25%'] - 1.5*IQR
+        upper_cutoff = stats['75%'] + 1.5*IQR
 
-    subset_outlier = df.loc[(df[label] < lower_cutoff) | (df[label] > upper_cutoff)]
-    df = df.drop(subset_outlier.index)
+        subset_outlier = df.loc[(df[label] < lower_cutoff) | (df[label] > upper_cutoff)]
+        df = df.drop(subset_outlier.index)
 
+    # Remove outliers below 25% and above 80% for Ejection Fraction
+    if label == 'Ejection Fraction':
+        subset_outlier = df.loc[(df[label] < 25) | (df[label] > 80)]
+        df = df.drop(subset_outlier.index)
 
 
     if (args.normalize_label):
