@@ -1,11 +1,11 @@
 #!/bin/bash -eux
-#SBATCH --job-name=lmm
+#SBATCH --job-name=pipeline
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=tim.depping@student.hpi.de
 #SBATCH --partition=gpu # -p
 #SBATCH --cpus-per-task=32 # -c
 #SBATCH --gpus=1
-#SBATCH --mem=64gb
+#SBATCH --mem=32gb
 #SBATCH --output=job_%j.log # %j is job id
 #SBATCH --export=ALL
 
@@ -21,9 +21,19 @@ LAYER=L4
 
 # If `imagenet`: load the default pytorch weights
 # else: specify path to `.pt` with state dict
-PRETRAINING=imagenet
+# PRETRAINING=imagenet
+PRETRAINING=/dhc/groups/mpws2022cl1/models/50_ci_2023_01_09_12_46_41.pt
 
-OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/$IDENTIFIER\_$SLURM_JOB_ID
+if [[ "$PRETRAINING" == "imagenet" ]]
+then
+MODEL_NAME=imagenet
+else
+BASE_NAME=$(basename ${PRETRAINING})
+MODEL_NAME=${BASE_NAME%.*}
+fi
+
+# OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/$IDENTIFIER\_$SLURM_JOB_ID
+OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/$IDENTIFIER\_$MODEL_NAME\_$SLURM_JOB_ID
 
 # Create output dir
 mkdir -p $OUTPUT_DIR
@@ -37,7 +47,8 @@ python -u feature_condensation.py $CSV_FILE $OUTPUT_DIR \
 --layer $LAYER
 
 # Extract individuals from embeddings file
-python -c "import pandas as pd; pd.read_csv('$OUTPUT_DIR/${MODEL}_${PRETRAINING}_$LAYER.txt', sep=' ')[['FID', 'IID']].to_csv('$OUTPUT_DIR/indiv.txt', sep=' ', header=False, index=False)"
+
+python -c "import pandas as pd; pd.read_csv('$OUTPUT_DIR/${MODEL}_${MODEL_NAME}_$LAYER.txt', sep=' ')[['FID', 'IID']].to_csv('$OUTPUT_DIR/indiv.txt', sep=' ', header=False, index=False)"
 
 # Preprocess genetic data
 sh lmm/preprocessing_ma.sh $OUTPUT_DIR/lmm/preprocessing_ma_output $OUTPUT_DIR/indiv.txt
