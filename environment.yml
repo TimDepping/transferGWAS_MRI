@@ -3,6 +3,7 @@ channels:
   - pytorch
   - conda-forge
   - nvidia
+  - bioconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -104,6 +105,11 @@ dependencies:
   - zstd=1.5.2=ha4553b6_0
   - ipykernel
   - matplotlib
+  - bioinfokit
+  - seaborn
+  - click
+  - matplotlib-venn
+  - adjusttext
   - pip:
       - adamp==0.3.0
       - axial-positional-embedding==0.2.1

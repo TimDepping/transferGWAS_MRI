@@ -61,6 +61,11 @@ python -u lmm/run_lmm.py \
 --out_dir "$OUTPUT_DIR/lmm/results" \
 --threads $SLURM_JOB_CPUS_PER_NODE
 
+# Create mhat and qq plots
+python -u lmm/create_plots.py \
+--results_dir $OUTPUT_DIR/lmm/results \
+--output_dir $OUTPUT_DIR/lmm/results/plots
+
 # Change permissions for output dir
 chgrp -R mpws2022cl1 $OUTPUT_DIR
 chmod 770 $OUTPUT_DIR -R
