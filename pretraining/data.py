@@ -11,13 +11,13 @@ from torch.utils.data.dataset import Dataset
 from torchvision import transforms
 
 '''
-3 data classes (MriData, AutoMriData, and ClassificationMriData) representing datasets of MRI Data.
+3 data classes (MriData, AutoMriData, and RegressionMriData) representing datasets of MRI Data.
 Subclasses of PyTorch's Dataset class.
 The subset argument can be used to limit the number of items in the dataset (usefull for debugging).
 '''
 
 '''
-Generic base class for AutoMriData and ClassificationMriData for basic functionality.
+Generic base class for AutoMriData and RegressionMriData for basic functionality.
 Overwrites __len__ / __getitem__ to implement basic functionality of loading and preprocessing images and labels.
 Returns img and label.
 '''
@@ -67,7 +67,7 @@ Returns only img as input and the target for each data sample (overrides methods
 '''
 class AutoMriData(MriData):
     def __init__(self, img_dir, labels_path, tfms=None, subset=100):
-        ds = ClassificationMriData(
+        ds = RegressionMriData(
             img_dir=img_dir, labels_path=labels_path, tfms=tfms, subset=subset
         )
         self.df = ds.df
@@ -94,10 +94,10 @@ class AutoMriData(MriData):
         return img, img
 
 '''
-Subclass of MriData designed for use with classification models.
+Subclass of MriData designed for use with regression models.
 Creates a df containing the paths to the images and their labels.
 '''
-class ClassificationMriData(MriData):
+class RegressionMriData(MriData):
     def __init__(
         self, img_dir, labels_path, tfms=None, subset=100, target_dtype=np.float32
     ):
@@ -110,7 +110,8 @@ class ClassificationMriData(MriData):
             path_col="image",
             # label_col="level",
             ##MRI
-            label_col="Ejection Fraction",
+            # label_col="Ejection Fraction",
+            label_col="Cardiac Index",
             tfms=tfms,
             subset=subset,
             target_dtype=target_dtype,
@@ -131,9 +132,6 @@ def get_tfms(size=224, interpolation=Image.BILINEAR):
     ## First 1000 images 
     # mean = [0.1874, 0.1870, 0.1825]
     # std = [0.1584, 0.1611, 0.1617]
-    ## First 100 png images
-    # mean = [0.1843, 0.1852, 0.1796] 
-    # std = [0.1545, 0.1580, 0.1568]
     ## ImgNet mean and std
     # mean = [0.485, 0.456, 0.406]
     # std = [0.229, 0.224, 0.225]
@@ -175,7 +173,7 @@ def build_mri_dataset(
     # get transformation information
     train_tfm, valid_tfm = get_tfms(size=size, interpolation=Image.BILINEAR)
 
-    # Create Dataset for Classification and AE
+    # Create Dataset for Regression and AE
     if ae:
         train_ds = AutoMriData(
             img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
@@ -184,10 +182,10 @@ def build_mri_dataset(
             img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
         )
     else:
-        train_ds = ClassificationMriData(
+        train_ds = RegressionMriData(
             img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
         )
-        valid_ds = ClassificationMriData(
+        valid_ds = RegressionMriData(
             img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
         )
 
