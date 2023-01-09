@@ -11,8 +11,20 @@
 date
 hostname -f
 
-# eval "$(conda shell.bash hook)"
-# conda activate transfer_gwas
+N_PCS=3
 
-cd /dhc/home/tim.depping/GitHub/master_project
-/dhc/home/tim.depping/conda3/envs/transfer_gwas/bin/python ./lmm/run_lmm.py --config ./lmm/config.toml
+OUTPUT_DIR=/dhc/home/tim.depping/GitHub/master_project/output
+
+# Run LMM
+python -u lmm/run_lmm.py \
+--bed "$OUTPUT_DIR/lmm/preprocessing_ma_output/chr{1:22}.bed" \
+--bim "$OUTPUT_DIR/lmm/preprocessing_ma_output/chr{1:22}.bim" \
+--fam "$OUTPUT_DIR/lmm/preprocessing_ma_output/chr1.fam" \
+--cov "$OUTPUT_DIR/covariates.txt" \
+--cov_cols "sex" \
+--INT "" \
+--emb "$OUTPUT_DIR/resnet50_imagenet_L4.txt" \
+--first_pc 0 \
+--last_pc $((N_PCS-1)) \
+--out_dir "$OUTPUT_DIR/lmm/results" \
+--threads $SLURM_JOB_CPUS_PER_NODE

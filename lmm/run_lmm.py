@@ -52,7 +52,8 @@ def main():
     parser.add_argument(
             '--qcov_cols',
             type=str,
-            default=['age', 'genet_PC_{1:10}'],
+            # default=['age', 'genet_PC_{1:10}'],
+            default=[],
             nargs='+',
             help='categorical covariate columns in covariate file',
             )
