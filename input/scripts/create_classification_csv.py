@@ -4,20 +4,35 @@ import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('img_dir', type=str, help='path to input images (png)')
+    parser.add_argument('--img_dir', type=str, help='path to input images (png)')
     parser.add_argument('--out_dir', type=str, default="/dhc/groups/mpws2022cl1/input/", help='Directory to save the csv file')
     parser.add_argument('--normalize_label', dest="normalize_label", action="store_true", default=False, help="normalize input labels")
     args = parser.parse_args()
 
     import_data = pd.read_csv("/dhc/groups/mpws2022cl1/input/cardio_44k.csv")
 
-    # '22425-2.0': 'Cardiac Index'
-    # '22420-2.0': 'Ejection Fraction'
-    label = 'Ejection Fraction'
-    label_code = '22420-2.0'
+    # Define label: either 'Cardiac Index' or 'Injection Fraction'
+    label = 'Cardiac Index'
+    
+    if label == 'Cardiac Index':
+        label_code = '22425-2.0'
+    elif label == 'Ejection Fraction':
+        label_code = '22420-2.0'
 
     df = import_data.loc[:, ['eid', label_code]].rename(columns={'eid': 'image', label_code: label})
     df = df.dropna(subset=[label])
+
+    # Remove outliers below and above 1.5x IQR below Q1 and above Q3
+    stats = df[label].describe()
+    IQR = stats['75%'] - stats['25%']
+
+    lower_cutoff = stats['25%'] - 1.5*IQR
+    upper_cutoff = stats['75%'] + 1.5*IQR
+
+    subset_outlier = df.loc[(df[label] < lower_cutoff) | (df[label] > upper_cutoff)]
+    df = df.drop(subset_outlier.index)
+
+
 
     if (args.normalize_label):
         # Calculate the mean and standard deviation of the Cardiac index / Ejection Fraction column
