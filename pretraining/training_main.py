@@ -1,4 +1,5 @@
 import argparse
+import datetime
 
 import numpy as np
 
@@ -18,8 +19,11 @@ import debugpy
 WANDB = True
 if WANDB:
     import wandb
-    PROJECT_NAME = "MRI_first_test_run"
-    PROJECT_NOTES = "Preprocessed images 94 / Trained on Ejection Fraction"
+    PROJECT_NAME = "3 Channel Images"
+    ## Project_Notes: "x images / label / AE or _"
+    PROJECT_NOTES = "x images / label / AE or _"
+    # RUN_NAME = "x_l_AE/_"
+    RUN_NAME = "x_l_AE/_"
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
@@ -66,15 +70,28 @@ def main():
         "--dev", dest="dev", default="cuda:0", type=str, help="cuda device to use"
     )
     parser.add_argument(
-        "--save_path",
-        dest="save_path",
-        default="models/best_model.pt",
+        "--model_dir",
+        dest="model_dir",
+        default="/dhc/groups/mpws2022cl1/models/",
         type=str,
         help="where to save models",
     )
+    parser.add_argument(
+        "--model_name",
+        dest="model_name",
+        default="best_model.pt",
+        type=str,
+        help="name of model",
+    )
+    parser.add_argument(
+        "--use_ae",
+        dest="use_ae",
+        action="store_true",
+        default=False, 
+        help="use autoencoder",
+    )
     args = parser.parse_args()
 
-    ## TODO: Why 2048 neurons?
     n_neurons = 2048 if args.res_depth == 50 else 512
     train_pct = 0.8
 
@@ -82,13 +99,22 @@ def main():
         img_dir=args.img_dir,
         labels_path=args.labels,
         ## Change subset according to your needs
-        subset=94,
+        # subset=38774,
+        subset=None,
         size=args.size,
         bs=args.bs,
         num_workers=args.num_workers,
         train_pct=train_pct,
         n_neurons=n_neurons,
+        use_ae = args.use_ae,
     )
+
+    # Name model
+    timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    model_path = args.model_dir + "/" + args.model_name 
+    if args.use_ae:
+        model_path += "_ae" 
+    model_path += "_" + timestamp + ".pt"
 
     M, C = train(
         configs=configs,
@@ -97,9 +123,8 @@ def main():
         res_depth=args.res_depth,
         dev=args.dev,
         # start_from=start_from,
-        save_path=args.save_path,
+        save_path=model_path,
     )
-
 
 def get_configs(
     img_dir,
@@ -111,10 +136,11 @@ def get_configs(
     subset=None,
     verbose=False,
     n_neurons=512,
+    use_ae=False,
 ):
     configs = []
 
-    # We create two configs, one for our classification task, one for our Autoencoder (AE).
+    # We create two configs, one for our regression task, one for our Autoencoder (AE).
     train_loader, valid_loader = build_mri_dataset(
         img_dir=img_dir,
         labels_path=labels_path,
@@ -128,7 +154,7 @@ def get_configs(
     )
     configs.append(
         {   
-            "name": "MRI Classification - MSE",
+            "name": "MRI Regression - MSE",
             "train_loader": train_loader,
             "valid_loader": valid_loader,
             "head": nn.Sequential(
@@ -139,27 +165,28 @@ def get_configs(
         }
     )
 
-    train_loader, valid_loader = build_mri_dataset(
-        img_dir=img_dir,
-        labels_path=labels_path,
-        ae=True,
-        size=size,
-        batch_size=bs,
-        num_workers=num_workers,
-        train_pct=train_pct,
-        subset=subset,
-        seed=123,
-    )
-    configs.append(
-        {
-            "name": "AE - MSE",
-            "train_loader": train_loader,
-            "valid_loader": valid_loader,
-            "head": SpatialDecoder(d=n_neurons),
-            "train_loss": spatial_mse,
-            "valid_loss": nn.MSELoss(reduction="mean"),
-        }
-    )
+    if use_ae:
+        train_loader, valid_loader = build_mri_dataset(
+            img_dir=img_dir,
+            labels_path=labels_path,
+            ae=True,
+            size=size,
+            batch_size=bs,
+            num_workers=num_workers,
+            train_pct=train_pct,
+            subset=subset,
+            seed=123,
+        )
+        configs.append(
+            {
+                "name": "AE - MSE",
+                "train_loader": train_loader,
+                "valid_loader": valid_loader,
+                "head": SpatialDecoder(d=n_neurons),
+                "train_loss": spatial_mse,
+                "valid_loss": nn.MSELoss(reduction="mean"),
+            }
+        ) 
 
     return configs
 
@@ -171,12 +198,11 @@ def train(
     res_depth=50,
     lr=1e-3,
     dev="cuda:0",
-    save_path="models/best_model.pt",
-    # start_from=1,
+    save_path="/dhc/groups/mpws2022cl1/models/best_model.pt",
+    # start_from=1, 
 ):
     if WANDB:
-        wandb.init(project=PROJECT_NAME, notes=PROJECT_NOTES)
-        
+        wandb.init(project=PROJECT_NAME, notes=PROJECT_NOTES)  
 
     model = ResNetFeatures(resnet=res_depth)
     model = model.to(dev)
@@ -232,7 +258,7 @@ def train(
 def train_one_epoch(model, configs, opt, scheduler=None, dev="cuda:0"):
     # set model into training mode (e.g. activate dropout)
     model.train()
-    # put each head (Classification, AE) into training mode
+    # put each head (Regression, AE) into training mode
     for dic in configs:
         dic["head"].train()
 
