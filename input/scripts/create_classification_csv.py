@@ -4,14 +4,14 @@ import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img_dir', type=str, help='path to input images (png)')
+    parser.add_argument('img_dir', type=str, help='path to input images (png)')
     parser.add_argument('--out_dir', type=str, default="/dhc/groups/mpws2022cl1/input/", help='Directory to save the csv file')
     parser.add_argument('--normalize_label', dest="normalize_label", action="store_true", default=False, help="normalize input labels")
     args = parser.parse_args()
 
     import_data = pd.read_csv("/dhc/groups/mpws2022cl1/input/cardio_44k.csv")
 
-    # Define label: either 'Cardiac Index' or 'Injection Fraction'
+    # Define label: either 'Cardiac Index' or 'Ejection Fraction'
     label = 'Cardiac Index'
     
     if label == 'Cardiac Index':
