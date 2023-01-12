@@ -11,24 +11,25 @@
 date
 hostname -f
 
-# eval "$(conda shell.bash hook)"
-# conda activate transfer_gwas
-
 NUMBER_OF_PATIENTS="50000"
-NAME="${NUMBER_OF_PATIENTS}_RGB_0-16-39"
+NAME="${NUMBER_OF_PATIENTS}_GRAY"
 
 echo $NAME
 
 cd /dhc/home/tim.depping/GitHub/master_project
+OUTPUT_DIR=/dhc/groups/mpws2022cl1/images/heart/png/$NAME
 
-/dhc/home/tim.depping/conda3/envs/transfer_gwas/bin/python -u \
+python -u \
 /dhc/home/tim.depping/GitHub/master_project/image_preprocessing.py \
 --temp_dir ./.tmp_$NAME \
---output_dir /dhc/groups/mpws2022cl1/images/heart/png/$NAME \
+--output_dir $OUTPUT_DIR \
 --number_of_patients $NUMBER_OF_PATIENTS \
---create_zip True
+--create_zip True \
+--create_subdirs True \
+--export_RGB_from_indices "" \
+--indices ""
 
-chgrp -R mpws2022cl1 /dhc/groups/mpws2022cl1/images
-chmod 770 /dhc/groups/mpws2022cl1/images -R
+chgrp -R mpws2022cl1 $OUTPUT_DIR
+chmod 770 $OUTPUT_DIR -R
 
 date

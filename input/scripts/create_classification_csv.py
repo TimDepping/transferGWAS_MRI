@@ -11,13 +11,33 @@ def main():
 
     import_data = pd.read_csv("/dhc/groups/mpws2022cl1/input/cardio_44k.csv")
 
-    # '22425-2.0': 'Cardiac Index'
-    # '22420-2.0': 'Ejection Fraction'
-    label = 'Ejection Fraction'
-    label_code = '22420-2.0'
+    # Define label: either 'Cardiac Index' or 'Ejection Fraction'
+    label = 'Cardiac Index'
+    
+    if label == 'Cardiac Index':
+        label_code = '22425-2.0'
+    elif label == 'Ejection Fraction':
+        label_code = '22420-2.0'
 
     df = import_data.loc[:, ['eid', label_code]].rename(columns={'eid': 'image', label_code: label})
     df = df.dropna(subset=[label])
+
+    # Remove outliers below and above 1.5x IQR below Q1 and above Q3 for Cardiac Index
+    if label == 'Cardiac Index':
+        stats = df[label].describe()
+        IQR = stats['75%'] - stats['25%']
+
+        lower_cutoff = stats['25%'] - 1.5*IQR
+        upper_cutoff = stats['75%'] + 1.5*IQR
+
+        subset_outlier = df.loc[(df[label] < lower_cutoff) | (df[label] > upper_cutoff)]
+        df = df.drop(subset_outlier.index)
+
+    # Remove outliers below 25% and above 80% for Ejection Fraction
+    if label == 'Ejection Fraction':
+        subset_outlier = df.loc[(df[label] < 25) | (df[label] > 80)]
+        df = df.drop(subset_outlier.index)
+
 
     if (args.normalize_label):
         # Calculate the mean and standard deviation of the Cardiac index / Ejection Fraction column
