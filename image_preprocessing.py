@@ -42,10 +42,10 @@ def crop_to_square(image):
 def preprocess_dicom_to_png(image):
     image = resample_spacing(image)
     
-    # Convert image to 8-bit RGB.
+    # Convert image to 8-bit image.
     image = sitk.RescaleIntensity(image, 0, 255)
     image = sitk.Cast(image, sitk.sitkUInt8)
-    image = sitk.ScalarToRGBColormap(image)
+    # image = sitk.ScalarToRGBColormap(image)
 
     image = crop_to_square(image)
     return image
@@ -61,7 +61,7 @@ def main():
     parser.add_argument('--create_zip', type=bool, default=False, help='Create a zip file of the output directory.')
     parser.add_argument('--number_of_patients', type=int, default=10, help='Number of patients to get image files from. By default images of 10 patients are exported. Set to -1 to export images of all patients.')
     parser.add_argument('--indices', type=str, default="0,16,39", help='Indices of images to export e.g. "0,16,39". By default all images are exported.')
-    parser.add_argument('--export_RGB_from_indices', type=str, default=True, help='Requires that exactly three indices are provided. Export one RGB image that combines the three greyscale images. The create_subdirs argument will be ignored.')
+    parser.add_argument('--export_RGB_from_indices', type=bool, default=True, help='Requires that exactly three indices are provided. Export one RGB image that combines the three greyscale images. The create_subdirs argument will be ignored.')
     args = parser.parse_args()
 
     indices = []
@@ -92,7 +92,6 @@ def main():
                         series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(patient_temp_dir, series_id)
                         series_reader.SetFileNames(series_file_names)
                         series_reader.MetaDataDictionaryArrayUpdateOn()
-                        # series_reader.LoadPrivateTagsOn()
                         images = series_reader.Execute()
                         series_description_key = '0008|103e'
                         series_description = series_reader.GetMetaData(0, series_description_key)
@@ -110,13 +109,6 @@ def main():
                                 image = sitk.RescaleIntensity(image, 0, 255)
                                 image = sitk.Cast(image, sitk.sitkVectorUInt8)
                                 image = crop_to_square(image)
-                                
-                                # print('origin: ' + str(image.GetOrigin()))
-                                # print('size: ' + str(image.GetSize()))
-                                # print('spacing: ' + str(image.GetSpacing()))
-                                # print('direction: ' + str(image.GetDirection()))
-                                # print('pixel type: ' + str(image.GetPixelIDTypeAsString()))
-                                # print('number of pixel components: ' + str(image.GetNumberOfComponentsPerPixel()))
 
                                 indices_text = '-'.join(map(str,indices))
                                 file_name = f'{patient_id}_{series_description}_RGB_{indices_text}.{args.export_format}'
@@ -149,9 +141,10 @@ def main():
                                                     'instance': i})
                     counter += 1
                     shutil.rmtree(patient_temp_dir)
-                except:
+                except Exception as e:
                     error_counter += 1
                     print(f'An error occured for patient: {patient_id}. Number of errors occured: {error_counter}.')
+                    print(e)
         if counter == args.number_of_patients:
             break
     shutil.rmtree(args.temp_dir)
