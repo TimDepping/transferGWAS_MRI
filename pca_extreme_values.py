@@ -1,31 +1,50 @@
 import pandas as pd
-import numpy as np
-import seaborn as sns
 import argparse
+import os
+import shutil
 
+def copy_image(iid, pc_value, source_dir, output_dir):
+    files_with_iid = [filename for filename in os.listdir(source_dir) if filename.startswith(str(iid))]
+    if len(files_with_iid) == 1:
+        first_filename = files_with_iid[0]
+        shutil.copyfile(f'{source_dir}/{first_filename}', f'{output_dir}/{pc_value}_{iid}.png')
+    elif len(files_with_iid) > 1:
+        print("There exists multiple files for this iid.")
+    else:
+        print(f'There is no file starting with idd: {iid}.')
 
-parser = argparse.ArgumentParser()
-parser.add_argument('input', type=str, help='Input resnet50_imagenet_L4 file')
-parser.add_argument('--pca', type=str, default= '0', help='Select the PCA')
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input', type=str, help='Textfile which includes principal components for each individual e.g. resnet50_imagenet_L4.txt')
+    parser.add_argument('--output_dir', type=str, default="./out", help='Directory to save the image files')
+    parser.add_argument('--n_extreme', type=int, default= '10', help='Number of extreme values to extract')
 
+    args = parser.parse_args()
 
-args = parser.parse_args()
+    os.makedirs(args.output_dir, exist_ok=True)
 
+    df = pd.read_csv(args.input, delim_whitespace=True)
 
-pc_resnet= pd.read_csv(args.input, delim_whitespace=True)
+    pc_columns = [column for column in df if column.startswith('PC')]
 
-print(pc_resnet.columns)
-print(pc_resnet.index)
+    extreme_values_df = pd.DataFrame(columns=['IID','PC','PC_VALUE'])
+    for pc_column in pc_columns:
+        pc_df = df[['IID', pc_column]]
+        df.sort_values(by= pc_column, ascending=True, inplace=True)
+        pc_min= pc_df.nsmallest(args.n_extreme+1, columns=pc_column)
+        pc_max= pc_df.nlargest(args.n_extreme+1, columns=pc_column)
+        pc_extreme = pd.concat([pc_min, pc_max])
+        pc_output_dir=f'{args.output_dir}/{pc_column}'
+        os.makedirs(pc_output_dir, exist_ok=True)
+        for _, row in pc_extreme.iterrows():
+            iid = str(int(row['IID']))
+            pc_value=str(row[pc_column])
+            extreme_values_df.loc[len(extreme_values_df)]=[iid, pc_column, pc_value] 
+            copy_image(iid=iid,
+            pc_value=pc_value,
+            source_dir="/dhc/groups/mpws2022cl1/images/heart/png/50000_RGB_0-16-39",
+            output_dir=pc_output_dir)
+    extreme_values_df.to_csv(f'{args.output_dir}/extreme_ids.csv', index=False)
 
-#Extract the first 10 smallest PCA values
-pc_0= pc_resnet[['FID','IID','PC_'+args.pca]]
-pc_0.sort_values( by= 'PC_'+args.pca, ascending=True, inplace=True)
-pc_0_min= pc_0.nsmallest(10, columns= 'PC_'+args.pca, keep='first')
-print(pc_0_min)
-pc_0_min.to_csv('PC_'+args.pca + '_min_pca.csv')
-
-#Extract the first 10 smallest PCA values
-pc_0= pc_resnet[['FID','IID','PC_'+args.pca]]
-pc_0.sort_values( by= 'PC_'+args.pca,ascending=False, inplace=True)
-pc_0_max= pc_0.nlargest(10, columns= 'PC_'+args.pca, keep='first')
-pc_0_max.to_csv('PC_'+args.pca + 'max_pca.csv')
+if __name__ == "__main__":
+    main()
