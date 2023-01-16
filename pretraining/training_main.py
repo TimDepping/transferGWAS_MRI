@@ -90,6 +90,13 @@ def main():
         default=False, 
         help="use autoencoder",
     )
+    parser.add_argument(
+        "--use_mc",
+        dest="use_mc",
+        action="store_true",
+        default=False, 
+        help="use multiple channels",
+    )
     args = parser.parse_args()
 
     n_neurons = 2048 if args.res_depth == 50 else 512
@@ -107,13 +114,16 @@ def main():
         train_pct=train_pct,
         n_neurons=n_neurons,
         use_ae = args.use_ae,
+        use_mc = args.use_mc,
     )
 
     # Name model
     timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     model_path = args.model_dir + "/" + args.model_name 
     if args.use_ae:
-        model_path += "_ae" 
+        model_path += "_ae"
+    if args.use_mc:
+        model_path += "_mc" 
     model_path += "_" + timestamp + ".pt"
 
     M, C = train(
@@ -137,6 +147,7 @@ def get_configs(
     verbose=False,
     n_neurons=512,
     use_ae=False,
+    use_mc=False,
 ):
     configs = []
 
@@ -151,6 +162,7 @@ def get_configs(
         train_pct=train_pct,
         subset=subset,
         seed=123,
+        mc=use_mc,
     )
     configs.append(
         {   
@@ -176,6 +188,7 @@ def get_configs(
             train_pct=train_pct,
             subset=subset,
             seed=123,
+            mc=use_mc,
         )
         configs.append(
             {

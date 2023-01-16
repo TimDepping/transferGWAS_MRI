@@ -1,4 +1,5 @@
 from os.path import join
+import os
 
 import numpy as np
 import pandas as pd
@@ -117,15 +118,91 @@ class RegressionMriData(MriData):
             target_dtype=target_dtype,
         )
 
+class MultiMriData(Dataset):
+    def __init__(
+        self, path_col, label_col, tfms=None, subset=100, target_dtype=np.float32
+    ):
+        if subset:
+            self.df = self.df.sample(subset, random_state=123)
+        self.path_col = path_col
+        self.label_col = label_col
+        self.tfms = tfms
+        self.target_dtype = target_dtype
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, torch.Tensor):
+            idx = idx.item()
+
+        # e.g. /dhc/groups/mpws2022cl1/images/heart/png/10_GRAY/1000096
+        subject_path = self.df.iloc[idx][self.path_col]
+        label = self.df.iloc[idx][self.label_col].astype(self.target_dtype)
+        
+        # e.g. 1000096
+        subject_id = os.path.basename(subject_path)
+        
+        tensors = []
+        for i in range(50):
+            file_name = join(subject_id + '_CINE_segmented_LAX_4Ch_' + str(i) + '.png')
+            file_path = join(subject_path, file_name)
+            img = Image.open(file_path).convert('L')
+
+            ## perform image transformation
+            if self.tfms:
+                img_tensor = self.tfms(img)
+            tensors.append(img_tensor)
+
+        # stack tensor
+        stacked_tensor = torch.stack(tensors, dim=2)
+        ## Todo: adapt size
+        stacked_tensor = stacked_tensor.reshape([224,224,50])
+
+        return stacked_tensor, label
+
+## TODO: Needs to be implemented
+class MultiAutoMriData(MultiMriData):
+    def __init__(
+        self, img_dir, labels_path, tfms=None, subset=100, target_dtype=np.float32
+    ):
+        super().__init__(
+            path_col="image",
+            label_col="Cardiac Index",
+            tfms=tfms,
+            subset=subset,
+            target_dtype=target_dtype,
+        )
+
+class MultiRegressionMriData(MultiMriData):
+    def __init__(
+        self, img_dir, labels_path, tfms=None, subset=100, target_dtype=np.float32
+    ):
+        # df contains image names + label (e.g.1000096,2.6)
+        # img dir (e.g. heart/png/50000_RGB)
+        df = pd.read_csv(labels_path)
+        df.image = [join(img_dir, str(p)) for p in df.image]
+        self.df = df[:subset]
+        super().__init__(
+            path_col="image",
+            label_col="Ejection Fraction",
+            tfms=tfms,
+            subset=subset,
+            target_dtype=target_dtype,
+        )
+
 '''
 Returns Transform Objects.
 Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor (Scaling), Normalization
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
+    ## Greyscale (just for quick fix - we need to find out the acutal number)
+    mean = [0.1886]
+    std = [0.1593]
     ## First 50000 images 
-    mean = [0.1886, 0.1880, 0.1834]
-    std = [0.1593, 0.1616, 0.1622]
+    # mean = [0.1886, 0.1880, 0.1834]
+    # std = [0.1593, 0.1616, 0.1622]
     ## First 3000 images 
     # mean = [0.1880, 0.1876, 0.1829]
     # std = [0.1586, 0.1612, 0.1616]
@@ -169,25 +246,42 @@ def build_mri_dataset(
     train_pct=0.8,
     subset=None,
     seed=123,
+    mc=False,
 ):
     # get transformation information
     train_tfm, valid_tfm = get_tfms(size=size, interpolation=Image.BILINEAR)
 
     # Create Dataset for Regression and AE
     if ae:
-        train_ds = AutoMriData(
-            img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
-        )
-        valid_ds = AutoMriData(
-            img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
-        )
+        if mc: 
+            train_ds = MultiAutoMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
+            )
+            valid_ds = MultiAutoMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
+            )
+        else:
+            train_ds = AutoMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
+            )
+            valid_ds = AutoMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
+            )
     else:
-        train_ds = RegressionMriData(
-            img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
-        )
-        valid_ds = RegressionMriData(
-            img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
-        )
+        if mc:
+            train_ds = MultiRegressionMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
+            )
+            valid_ds = MultiRegressionMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
+            )
+        else:
+            train_ds = RegressionMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
+            )
+            valid_ds = RegressionMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
+            )
 
     # Split into training and validation set
     m = len(train_ds)
