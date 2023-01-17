@@ -1,11 +1,11 @@
 import argparse
 import os
-import pandas as pd
 from PIL import Image
 import torch
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from tqdm import tqdm
 
 class MriData(Dataset):
     def __init__(self, img_dir, tfms=None):
@@ -47,7 +47,7 @@ def main():
 
     loader = DataLoader(
         image_data, 
-        batch_size = 20, 
+        batch_size = 50, 
         num_workers=1)
 
     mean, std = batch_mean_and_sd(loader)
@@ -61,7 +61,7 @@ def batch_mean_and_sd(loader):
     snd_moment = torch.empty(1)
 
     # Iterate over the batches of images from the loader
-    for images, _ in loader:
+    for images, _ in tqdm(loader):
         # Unpack the shape of the images
         b, c, h, w = images.shape
         # Calculate the number of pixels
