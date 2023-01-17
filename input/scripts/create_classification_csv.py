@@ -49,7 +49,7 @@ def main():
         df[label] = df[label].apply(lambda x: (x - mean_value) / std_value)
     
     if (args.multi_channel):
-        folders = [name for name in os.listdir("/dhc/groups/mpws2022cl1/images/heart/png/10_GRAY")]
+        folders = [name for name in os.listdir(args.img_dir)]
         instances = folders
     else:
         df['image'] = df['image'].astype(str)
