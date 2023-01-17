@@ -157,7 +157,7 @@ class MultiMriData(Dataset):
         # stack tensor
         stacked_tensor = torch.stack(tensors, dim=2)
         ## Todo: adapt size
-        stacked_tensor = stacked_tensor.reshape([224,224,50])
+        stacked_tensor = stacked_tensor.reshape([50,224,224])
 
         return stacked_tensor, label
 
@@ -197,9 +197,9 @@ Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor 
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
-    ## Greyscale (just for quick fix - we need to find out the acutal number)
-    mean = [0.1886]
-    std = [0.1593]
+    ## Greyscale - 50k (just for quick fix - we need to find out the acutal number)
+    mean = [0.2017]
+    std = [0.1567]
     ## First 50000 images 
     # mean = [0.1886, 0.1880, 0.1834]
     # std = [0.1593, 0.1616, 0.1622]

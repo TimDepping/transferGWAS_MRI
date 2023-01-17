@@ -4,16 +4,19 @@ from torchvision import models
 
 
 class ResNetFeatures(nn.Module):
-    def __init__(self, resnet=50):
+    def __init__(self, resnet=50, mc=False):
         super().__init__()
         if resnet == 18:
-            self.r = models.resnet18(pretrained=False)
+             self.r = models.resnet18(pretrained=False)
         elif resnet == 34:
             self.r = models.resnet34(pretrained=False)
         elif resnet == 50:
             self.r = models.resnet50(pretrained=False)
         else:
             raise NotImplementedError()
+
+        if mc:
+            self.r.conv1 = nn.Conv2d(50, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
     def forward(self, x):
         x = self.r.conv1(x)

@@ -15,13 +15,13 @@ from models import SpatialDecoder, FlattenLayer, ResNetFeatures
 
 import debugpy
 
-## TODO: Set to true if you want to enable tracking
 WANDB = True
 if WANDB:
     import wandb
-    PROJECT_NAME = "3 Channel Images"
+    # "3 Channel Images"
+    PROJECT_NAME = "Testing - mc models"
     ## Project_Notes: "x images / label / AE or _"
-    PROJECT_NOTES = "x images / label / AE or _"
+    PROJECT_NOTES = "x images / label / AE or _ "
     # RUN_NAME = "x_l_AE/_"
     RUN_NAME = "x_l_AE/_"
 
@@ -34,7 +34,7 @@ def main():
     # debugpy.listen(5678)
     # print("Waiting for debugger attach")
     # debugpy.wait_for_client()
-
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("img_dir", type=str, help="path to MRI dataset (pngs)")
     parser.add_argument("labels", type=str, help="path to full labels csv")
@@ -113,8 +113,8 @@ def main():
         num_workers=args.num_workers,
         train_pct=train_pct,
         n_neurons=n_neurons,
-        use_ae = args.use_ae,
-        use_mc = args.use_mc,
+        use_ae=args.use_ae,
+        use_mc=args.use_mc,
     )
 
     # Name model
@@ -134,6 +134,7 @@ def main():
         dev=args.dev,
         # start_from=start_from,
         save_path=model_path,
+        use_mc=args.use_mc,
     )
 
 def get_configs(
@@ -213,11 +214,13 @@ def train(
     dev="cuda:0",
     save_path="/dhc/groups/mpws2022cl1/models/best_model.pt",
     # start_from=1, 
+    use_mc=False,
 ):
     if WANDB:
         wandb.init(project=PROJECT_NAME, notes=PROJECT_NOTES)  
 
-    model = ResNetFeatures(resnet=res_depth)
+    model = ResNetFeatures(resnet=res_depth, mc=use_mc)
+    
     model = model.to(dev)
     if WANDB:
         mmodels = [model]
@@ -296,7 +299,6 @@ def train_one_epoch(model, configs, opt, scheduler=None, dev="cuda:0"):
     - performs backpropagation to update the model's parameters, 
     - updates the learning rate using the provided scheduler
     '''
-    
     # Train/val split is managed by train_pct
     # batches: training data for each head of the model ((inputs1, targets1), (inputs2, targets2))
     for i, batches in pbar:
