@@ -197,9 +197,15 @@ Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor 
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
-    ## Greyscale - 50k (just for quick fix - we need to find out the acutal number)
-    mean = [0.2017]
-    std = [0.1567]
+    ## Greyscale - 50k 
+    # mean = [0.1894]
+    # std = [0.1609]
+    ## Greyscale - 3k
+    mean = [0.1889]
+    std = [0.1603]
+    ## Greyscale - 1k
+    # mean = [0.1884]
+    # std = [0.1603]
     ## First 50000 images 
     # mean = [0.1886, 0.1880, 0.1834]
     # std = [0.1593, 0.1616, 0.1622]
