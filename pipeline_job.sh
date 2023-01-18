@@ -15,7 +15,6 @@ hostname -f
 IDENTIFIER=50000_RGB_0-16-39
 IMAGE_FILES=/dhc/groups/mpws2022cl1/images/heart/png/$IDENTIFIER
 CSV_FILE=/dhc/groups/mpws2022cl1/images/heart/png/$IDENTIFIER.csv
-CLEANED_CSV_FILE=/dhc/groups/mpws2022cl1/images/heart/png/${IDENTIFIER}_cleaned.csv
 N_PCS=10
 MODEL=resnet50
 LAYER=L4
@@ -34,16 +33,13 @@ MODEL_NAME=${BASE_NAME%.*}
 fi
 
 # OUTPUT_DIR=./output/$IDENTIFIER\_$MODEL_NAME\_$SLURM_JOB_ID
-OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/$IDENTIFIER\_$MODEL_NAME\_$SLURM_JOB_ID
+OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/${IDENTIFIER}${MODEL_NAME}$SLURM_JOB_ID
 
 # Create output dir
 mkdir -p $OUTPUT_DIR
 
-# Clean individuals
-python -u input/scripts/clean_individuals.py $CSV_FILE PATH_TO_EXCLUDE_CSV 
-
 # Create embeddings
-python -u feature_condensation.py $CLEANED_CSV_FILE $OUTPUT_DIR \
+python -u feature_condensation.py $CSV_FILE $OUTPUT_DIR \
 --base_img_dir $IMAGE_FILES \
 --n_pcs $N_PCS \
 --model $MODEL \
@@ -51,9 +47,8 @@ python -u feature_condensation.py $CLEANED_CSV_FILE $OUTPUT_DIR \
 --layer $LAYER
 
 # Extract individuals from embeddings file
-
-EMBEDDINGS_FILE=${MODEL}_${MODEL_NAME}_$LAYER.txt
-python -c "import pandas as pd; pd.read_csv('$OUTPUT_DIR/${EMBEDDINGS_FILE}', sep=' ')[['FID', 'IID']].to_csv('$OUTPUT_DIR/indiv.txt', sep=' ', header=False, index=False)"
+EMBEDDINGS_FILE=${OUTPUT_DIR}/${MODEL}_${MODEL_NAME}_$LAYER.txt
+python -c "import pandas as pd; pd.read_csv('$EMBEDDINGS_FILE}', sep=' ')[['FID', 'IID']].to_csv('$OUTPUT_DIR/indiv.txt', sep=' ', header=False, index=False)"
 
 # Preprocess genetic data
 sh lmm/preprocessing_ma.sh $OUTPUT_DIR/lmm/preprocessing_ma_output $OUTPUT_DIR/indiv.txt
