@@ -11,13 +11,14 @@
 date
 hostname -f
 
-NUMBER_OF_PATIENTS="50000"
+NUMBER_OF_PATIENTS="3000"
 NAME="${NUMBER_OF_PATIENTS}_GRAY"
 
 echo $NAME
 
 cd /dhc/home/tim.depping/GitHub/master_project
 OUTPUT_DIR=/dhc/groups/mpws2022cl1/images/heart/png/$NAME
+OUTPUT_CSV=/dhc/groups/mpws2022cl1/images/heart/png/$NAME.csv
 
 python -u \
 /dhc/home/tim.depping/GitHub/master_project/image_preprocessing.py \
@@ -31,5 +32,7 @@ python -u \
 
 chgrp -R mpws2022cl1 $OUTPUT_DIR
 chmod 770 $OUTPUT_DIR -R
+chgrp mpws2022cl1 $OUTPUT_CSV
+chmod 770 $OUTPUT_CSV
 
 date
