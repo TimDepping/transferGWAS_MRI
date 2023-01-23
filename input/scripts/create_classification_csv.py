@@ -39,7 +39,6 @@ def main():
         subset_outlier = df.loc[(df[label] < 25) | (df[label] > 80)]
         df = df.drop(subset_outlier.index)
 
-
     if (args.normalize_label):
         # Calculate the mean and standard deviation of the Cardiac index / Ejection Fraction column
         mean_value = df[label].mean()
@@ -48,19 +47,19 @@ def main():
         # Normalize the label column
         df[label] = df[label].apply(lambda x: (x - mean_value) / std_value)
     
+    df['image'] = df['image'].astype(str)
     if (args.multi_channel):
-        folders = [name for name in os.listdir(args.img_dir) if len(os.listdir(os.path.join(args.img_dir, name))) >= 50]
-        instances = folders
+        df['image'] = df['image'].apply(lambda x: str(x) + '_CINE_segmented_LAX_4Ch_mc50')
+        # os.path.join(args.img_dir, "train") -> train/valid folder with same image names (different transformations) - we check only in one folder.
+        filenames = [name for name in os.listdir(os.path.join(args.img_dir, "train")) if os.path.splitext(name)[-1] == '.pt']
+        filenames = [filename[:-3] for filename in filenames]
     else:
-        df['image'] = df['image'].astype(str)
         df['image'] = df['image'].apply(lambda x: str(x) + '_CINE_segmented_LAX_4Ch_RGB_0-16-39')
         filenames = [name for name in os.listdir(args.img_dir) if os.path.splitext(name)[-1] == '.png']
-        # Remove the ".png" ending from each filename in the list of filenames
         filenames = [filename[:-4] for filename in filenames]
-        instances = filenames
 
     # Use the DataFrame.isin() method to check which rows in the DataFrame are in the list of filenames
-    mask = df['image'].isin(instances)
+    mask = df['image'].isin(filenames)
 
     # Use the boolean mask to filter the DataFrame and remove the rows that are not in the list of filenames
     df = df[mask]
