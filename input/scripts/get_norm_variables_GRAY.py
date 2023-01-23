@@ -27,15 +27,14 @@ class MriData(Dataset):
     def __getitem__(self, idx):
         img, _ = self._load_item(idx)
 
-        if self.tfms:
-            img = self.tfms(img)
-        else:
-            transform = transforms.Compose(
-                [
-                transforms.ToTensor(),            
-                ]
-            )
-            img = transform(img)
+        transform = transforms.Compose(
+            [
+            transforms.ToTensor(),            
+            ]
+        )
+
+        img = transform(img)
+        
         return img, 0
 
 def main():

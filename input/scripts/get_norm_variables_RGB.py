@@ -36,15 +36,14 @@ class MriData(Dataset):
     def __getitem__(self, idx):
         img, _ = self._load_item(idx)
 
-        if self.tfms:
-            img = self.tfms(img)
-        else:
-            transform = transforms.Compose(
-                [
-                transforms.ToTensor(),            
-                ]
-            )
-            img = transform(img)
+        transform = transforms.Compose(
+            [
+            transforms.ToTensor(),            
+            ]
+        )
+        
+        img = transform(img)
+
         return img, 0
 
 """ 
@@ -59,7 +58,6 @@ def main():
     ds = MriData(args.img_dir)
     m = len(ds)
     print("Number of Inputs: ", m)
-
     image_data = MriData(args.img_dir)
 
     loader = DataLoader(
