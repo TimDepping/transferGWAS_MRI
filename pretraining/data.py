@@ -22,6 +22,12 @@ Generic base class for AutoMriData and RegressionMriData for basic functionality
 Overwrites __len__ / __getitem__ to implement basic functionality of loading and preprocessing images and labels.
 Returns img and label.
 '''
+
+LABEL_COL = "Ejection Fraction"
+
+# "Ejection Fraction",
+# "Cardiac Index",
+
 class MriData(Dataset):
     # Constructor
     def __init__(
@@ -109,25 +115,29 @@ class RegressionMriData(MriData):
         # self.df = df.drop([1146,])[:subset]
         super().__init__(
             path_col="image",
-            # label_col="level",
-            ##MRI
-            # label_col="Ejection Fraction",
-            label_col="Cardiac Index",
+            label_col=LABEL_COL,
             tfms=tfms,
             subset=subset,
             target_dtype=target_dtype,
         )
-
-class MultiMriData(Dataset):
+class TensorMriData(Dataset):
     def __init__(
-        self, path_col, label_col, tfms=None, subset=100, target_dtype=np.float32
+        self, img_dir, labels_path, tfms_type, subset=None, target_dtype=np.float32
     ):
+        self.path_col = "image"
+        self.label_col = LABEL_COL
+        self.target_dtype = target_dtype
+        self.tfms = None
+
+        df = pd.read_csv(labels_path)
+        if (tfms_type=="train"):
+            df.image = [join(img_dir, "train", str(p) + ".pt") for p in df.image]
+        else:
+            df.image = [join(img_dir, "valid", str(p) + ".pt") for p in df.image]
+
+        self.df = df[:subset]
         if subset:
             self.df = self.df.sample(subset, random_state=123)
-        self.path_col = path_col
-        self.label_col = label_col
-        self.tfms = tfms
-        self.target_dtype = target_dtype
 
     def __len__(self):
         return len(self.df)
@@ -136,60 +146,13 @@ class MultiMriData(Dataset):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
 
-        # e.g. /dhc/groups/mpws2022cl1/images/heart/png/10_GRAY/1000096
-        subject_path = self.df.iloc[idx][self.path_col]
+        path = self.df.iloc[idx][self.path_col]
         label = self.df.iloc[idx][self.label_col].astype(self.target_dtype)
         
-        # e.g. 1000096
-        subject_id = os.path.basename(subject_path)
-        
-        tensors = []
-        for i in range(50):
-            file_name = join(subject_id + '_CINE_segmented_LAX_4Ch_' + str(i) + '.png')
-            file_path = join(subject_path, file_name)
-            img = Image.open(file_path).convert('L')
+        ## Transformation already took place in preprocessing. 
+        tensor = torch.load(path)
 
-            ## perform image transformation
-            if self.tfms:
-                img_tensor = self.tfms(img)
-            tensors.append(img_tensor)
-
-        # stack tensor
-        stacked_tensor = torch.stack(tensors, dim=2)
-        ## Todo: adapt size
-        stacked_tensor = stacked_tensor.reshape([50,224,224])
-
-        return stacked_tensor, label
-
-## TODO: Needs to be implemented
-class MultiAutoMriData(MultiMriData):
-    def __init__(
-        self, img_dir, labels_path, tfms=None, subset=100, target_dtype=np.float32
-    ):
-        super().__init__(
-            path_col="image",
-            label_col="Cardiac Index",
-            tfms=tfms,
-            subset=subset,
-            target_dtype=target_dtype,
-        )
-
-class MultiRegressionMriData(MultiMriData):
-    def __init__(
-        self, img_dir, labels_path, tfms=None, subset=100, target_dtype=np.float32
-    ):
-        # df contains image names + label (e.g.1000096,2.6)
-        # img dir (e.g. heart/png/50000_RGB)
-        df = pd.read_csv(labels_path)
-        df.image = [join(img_dir, str(p)) for p in df.image]
-        self.df = df[:subset]
-        super().__init__(
-            path_col="image",
-            label_col="Ejection Fraction",
-            tfms=tfms,
-            subset=subset,
-            target_dtype=target_dtype,
-        )
+        return tensor, label
 
 '''
 Returns Transform Objects.
@@ -198,11 +161,11 @@ Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.BILINEAR):
     ## Greyscale - 50k 
-    # mean = [0.1894]
-    # std = [0.1609]
+    mean = [0.1894]
+    std = [0.1609]
     ## Greyscale - 3k
-    mean = [0.1889]
-    std = [0.1603]
+    # mean = [0.1889]
+    # std = [0.1603]
     ## Greyscale - 1k
     # mean = [0.1884]
     # std = [0.1603]
@@ -259,27 +222,19 @@ def build_mri_dataset(
 
     # Create Dataset for Regression and AE
     if ae:
-        if mc: 
-            train_ds = MultiAutoMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
-            )
-            valid_ds = MultiAutoMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
-            )
-        else:
-            train_ds = AutoMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
-            )
-            valid_ds = AutoMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
-            )
+        train_ds = AutoMriData(
+            img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
+        )
+        valid_ds = AutoMriData(
+            img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
+        )
     else:
         if mc:
-            train_ds = MultiRegressionMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
+            train_ds = TensorMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms_type="train", subset=subset
             )
-            valid_ds = MultiRegressionMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
+            valid_ds = TensorMriData(
+                img_dir=img_dir, labels_path=labels_path, tfms_type="test", subset=subset
             )
         else:
             train_ds = RegressionMriData(
