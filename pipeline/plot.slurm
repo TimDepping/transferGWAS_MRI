@@ -2,10 +2,9 @@
 #SBATCH --job-name=plot
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=tim.depping@student.hpi.de
-#SBATCH --partition=hpcpu
+#SBATCH --partition=hpcpu,vcpu,gpua100,gpupro,gpu
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4gb
-#SBATCH --output=plot_%j.log # %j is job id
 #SBATCH --export=ALL
 
 OUTPUT_DIR=$1

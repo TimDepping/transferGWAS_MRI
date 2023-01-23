@@ -3,10 +3,9 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=tim.depping@student.hpi.de
 #SBATCH --partition=gpu
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=16
 #SBATCH --gpus=1
 #SBATCH --mem=64gb
-#SBATCH --output=feature_condensation_%j.log # %j is job id
 #SBATCH --export=ALL
 
 INPUT_INDIV_FILE=$1

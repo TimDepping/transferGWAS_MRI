@@ -2,10 +2,9 @@
 #SBATCH --job-name=lmm
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=tim.depping@student.hpi.de
-#SBATCH --partition=hpcpu
-#SBATCH --cpus-per-task=124
+#SBATCH --partition=hpcpu,vcpu,gpua100,gpupro,gpu
+#SBATCH --cpus-per-task=64
 #SBATCH --mem=256gb
-#SBATCH --output=lmm_%j.log # %j is job id
 #SBATCH --export=ALL
  
 date
