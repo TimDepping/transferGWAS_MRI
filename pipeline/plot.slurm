@@ -4,7 +4,7 @@
 #SBATCH --mail-user=tim.depping@student.hpi.de
 #SBATCH --partition=hpcpu,vcpu,gpua100,gpupro,gpu
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=4gb
+#SBATCH --mem=32gb
 #SBATCH --export=ALL
 
 OUTPUT_DIR=$1
