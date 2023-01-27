@@ -27,7 +27,7 @@ sh lmm/preprocessing_ma.sh $OUTPUT_DIR/lmm/preprocessing_ma_output $INDIV_FILE
 sh lmm/preprocessing_imp.sh $OUTPUT_DIR/lmm/preprocessing_imp_output $INDIV_FILE $SLURM_JOB_CPUS_PER_NODE
 
 # Preprocess covariates
-python -u lmm/preprocessing_cov.py /dhc/projects/ukbiobank/original/phenotypes/ukb_phenotypes.csv \
+python -u lmm/preprocessing_cov.py /dhc/projects/ukbiobank/original/phenotypes/ukb49727.csv \
 --indiv $INDIV_FILE \
 --output $OUTPUT_DIR/covariates.txt
 

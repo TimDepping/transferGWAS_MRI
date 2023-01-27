@@ -20,7 +20,7 @@ def main():
         '54-0.0':   'assessment_center',    # assessment center
         '3079-0.0': 'pace_maker',  # pace-maker
         '22000-0.0':    'geno_batch',  # genotyping batch
-        '22426-0.0':    'heart_rate',   # average heart rate
+        '22426-2.0':    'heart_rate',   # average heart rate
         '21022-0.0':    'age',  # age at recruitment
         '21001-0.0':    'bmi',  # bmi
     }
@@ -35,7 +35,6 @@ def main():
     print('reading covariate file...')
     df = pd.read_csv(args.input, index_col=0, usecols=[
                      'eid']+list(columns.keys()))
-    # df = pd.read_csv(args.input, nrows=10, index_col=0, usecols=['eid']+list(columns.keys()))
     print('preparing data...')
     df.rename(columns, axis=1, inplace=True)
 
