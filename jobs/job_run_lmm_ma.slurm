@@ -4,7 +4,7 @@
 #SBATCH --mail-user=tim.depping@student.hpi.de
 #SBATCH --partition=hpcpu # -p
 #SBATCH --cpus-per-task=64 # -c
-#SBATCH --mem=64gb
+#SBATCH --mem=80gb
 #SBATCH --output=lmm_%j.log # %j is job id
 #SBATCH --export=ALL
  
