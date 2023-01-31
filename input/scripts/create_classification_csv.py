@@ -50,8 +50,7 @@ def main():
     df['image'] = df['image'].astype(str)
     if (args.multi_channel):
         df['image'] = df['image'].apply(lambda x: str(x) + '_CINE_segmented_LAX_4Ch_mc50')
-        # os.path.join(args.img_dir, "train") -> train/valid folder with same image names (different transformations) - we check only in one folder.
-        filenames = [name for name in os.listdir(os.path.join(args.img_dir, "train")) if os.path.splitext(name)[-1] == '.pt']
+        filenames = [name for name in os.listdir(args.img_dir) if os.path.splitext(name)[-1] == '.pt']
         filenames = [filename[:-3] for filename in filenames]
     else:
         df['image'] = df['image'].apply(lambda x: str(x) + '_CINE_segmented_LAX_4Ch_RGB_0-16-39')
