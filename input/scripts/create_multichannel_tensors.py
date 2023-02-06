@@ -23,10 +23,10 @@ def create_tensors(img_dir, out_dir):
             file_path = join(subject_path, file_name)
             img = Image.open(file_path)
             img_tensor = torch.from_numpy(np.array(img))
+            img_tensor = torch.unsqueeze(img_tensor, dim=0) 
             tensors.append(img_tensor)
 
-        stacked_tensor = torch.stack(tensors, dim=2)
-        stacked_tensor = stacked_tensor.reshape([50,224,224])
+        stacked_tensor = torch.stack(tensors, dim=0)
 
         store_tensor(stacked_tensor, subject_id, out_dir)
 

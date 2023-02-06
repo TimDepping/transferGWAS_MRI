@@ -22,11 +22,31 @@ Generic base class for AutoMriData and RegressionMriData for basic functionality
 Overwrites __len__ / __getitem__ to implement basic functionality of loading and preprocessing images and labels.
 Returns img and label.
 '''
-
-LABEL_COL = "Ejection Fraction"
-
 # "Ejection Fraction",
 # "Cardiac Index",
+LABEL_COL = "Ejection Fraction"
+
+## Greyscale - 50k 
+MEAN = [0.1894]
+STD = [0.1609]
+## Greyscale - 3k
+# mean = [0.1889]
+# std = [0.1603]
+## Greyscale - 1k
+# mean = [0.1884]
+# std = [0.1603]
+## First 50000 images 
+# mean = [0.1886, 0.1880, 0.1834]
+# std = [0.1593, 0.1616, 0.1622]
+## First 3000 images 
+# mean = [0.1880, 0.1876, 0.1829]
+# std = [0.1586, 0.1612, 0.1616]
+## First 1000 images 
+# mean = [0.1874, 0.1870, 0.1825]
+# std = [0.1584, 0.1611, 0.1617]
+## ImgNet mean and std
+# mean = [0.485, 0.456, 0.406]
+# std = [0.229, 0.224, 0.225]
 
 class MriData(Dataset):
     # Constructor
@@ -134,14 +154,6 @@ class TensorMriData(Dataset):
     def __len__(self):
         return len(self.df)
 
-    def _tensor_to_img(self, tensor):
-        # Convert the tensor to a numpy array
-        arr = tensor.numpy()
-        arr = arr.astype('uint8')
-        # Convert the numpy array to a PIL image
-        img = Image.fromarray(arr)
-        return img
-
     def _load_item(self, idx):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
@@ -149,21 +161,29 @@ class TensorMriData(Dataset):
         path = self.df.iloc[idx][self.path_col]
         label = self.df.iloc[idx][self.label_col].astype(self.target_dtype)
         
-        tensor = torch.load(path)
+        mcTensor = torch.load(path)
 
-        # Unstack the tensor along the first dimension to create a list of 50 tensors with shape (H, W)
-        unstacked_tensors = torch.unbind(tensor, dim=0)
-        
-        # Convert the list of tensors to a list of PIL images
-        imgs = [self._tensor_to_img(tensor) for tensor in unstacked_tensors]
+        # batch transformation (BxCxHxW)
+        if self.tfms:
+            mcTensor = self.tfms(mcTensor)
 
-        # Apply the same transformation to all the images
-        transformed_tensors = [self.tfms(img) for img in imgs]
+        # ToTensor requires a numpy.ndarray (H x W x C)
+        ## 1) transform mcTensor to npArrayList (50x 1x1x224x224)
+        npArrays = mcTensor.numpy()
+        npArrayList = np.split(npArrays, 50, axis=0)
+        ## 2) remove dimensions of size 1 infront of the array 1,1,224,244 -> 224,244
+        npArrayList = np.squeeze(npArrayList)
+        ## add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
+        npArrayList = [array[:, :, np.newaxis] for array in npArrayList]
+        ## 3) array to tensor
+        tensorList = [transforms.ToTensor()(array) for array in npArrayList]
+        ## normalize tensor
+        normTensorList = [transforms.Normalize(mean=MEAN, std=STD)(tensor) for tensor in tensorList]
 
         ## Get rid of the first dimension: [1,224,224] -> [224,224]
-        squeezed_tensors = [tensor.squeeze(0) for tensor in transformed_tensors]
-
-        # Stack all the transformed images back together to a create a 50 channel tensor
+        squeezed_tensors = [tensor.squeeze(0) for tensor in normTensorList]
+        
+        ## Stack all the transformed images back together to a create a 50 channel tensor
         stacked_tensor = torch.stack(squeezed_tensors, dim=0)
 
         return stacked_tensor, label
@@ -177,45 +197,42 @@ Returns Transform Objects.
 Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor (Scaling), Normalization
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
-def get_tfms(size=224, interpolation=Image.BILINEAR):
-    ## Greyscale - 50k 
-    mean = [0.1894]
-    std = [0.1609]
-    ## Greyscale - 3k
-    # mean = [0.1889]
-    # std = [0.1603]
-    ## Greyscale - 1k
-    # mean = [0.1884]
-    # std = [0.1603]
-    ## First 50000 images 
-    # mean = [0.1886, 0.1880, 0.1834]
-    # std = [0.1593, 0.1616, 0.1622]
-    ## First 3000 images 
-    # mean = [0.1880, 0.1876, 0.1829]
-    # std = [0.1586, 0.1612, 0.1616]
-    ## First 1000 images 
-    # mean = [0.1874, 0.1870, 0.1825]
-    # std = [0.1584, 0.1611, 0.1617]
-    ## ImgNet mean and std
-    # mean = [0.485, 0.456, 0.406]
-    # std = [0.229, 0.224, 0.225]
-    norm = transforms.Normalize(mean=mean, std=std)
+def get_tfms(size=224, interpolation=Image.Resampling.BILINEAR, mc=False):
+    norm = transforms.Normalize(mean=MEAN, std=STD)
 
-    train = transforms.Compose(
-        [
-            transforms.RandomRotation(degrees=180, resample=interpolation),
-            transforms.Resize(size=size),
-            transforms.ColorJitter(
-                brightness=0.5, contrast=0.25, saturation=0.25, hue=0.03
-            ),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor(),
-            norm,
-        ]
-    )
-    valid = transforms.Compose(
-        [transforms.Resize(size=size), transforms.ToTensor(), norm,]
-    )
+    ## Transformation for mc tensors is done in a batch. ToTensor and Norm does not work for batches
+    ## and is therefore done after the augmentations.
+    if mc:
+        train = transforms.Compose(
+            [
+                transforms.RandomRotation(degrees=180, interpolation=interpolation),
+                transforms.Resize(size=size),
+                transforms.ColorJitter(
+                    brightness=0.5, contrast=0.25, saturation=0.25, hue=0.03
+                ),
+                transforms.RandomHorizontalFlip(p=0.5),
+            ]
+        )
+        valid = transforms.Compose(
+            [transforms.Resize(size=size),]
+        )
+    else:
+        train = transforms.Compose(
+            [
+                transforms.RandomRotation(degrees=180, interpolation=interpolation),
+                transforms.Resize(size=size),
+                transforms.ColorJitter(
+                    brightness=0.5, contrast=0.25, saturation=0.25, hue=0.03
+                ),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ToTensor(),
+                norm,
+            ]
+        )
+        valid = transforms.Compose(
+            [transforms.Resize(size=size), transforms.ToTensor(), norm,]
+        )
+
 
     return train, valid
 
@@ -236,7 +253,7 @@ def build_mri_dataset(
     mc=False,
 ):
     # get transformation information
-    train_tfm, valid_tfm = get_tfms(size=size, interpolation=Image.BILINEAR)
+    train_tfm, valid_tfm = get_tfms(size=size, interpolation=Image.BILINEAR, mc=mc)
 
     # Create Dataset for Regression and AE
     if ae:
