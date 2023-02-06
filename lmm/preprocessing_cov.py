@@ -52,6 +52,8 @@ def main():
     cols = cols[-2:] + cols[:-2]
     df = df[cols]
 
+    df.dropna(inplace=True)
+
     df.to_csv(args.output, sep=' ', index=False)
 
 
