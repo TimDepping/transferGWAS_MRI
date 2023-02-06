@@ -32,7 +32,7 @@ def main():
         '--cov', type=str, help='path to space-separated covariate file; first two columns should be FID and IID')
     parser.add_argument('--INT',
                         type=str,
-                        default='adjusted',
+                        default='',
                         choices=['', 'marginal', 'adjusted'],
                         help='whether to inverse-normal rank-transform the input data. empty, marginal or adjusted',
                         )
