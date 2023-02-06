@@ -4,8 +4,8 @@ date
 hostname -f
 
 # Parameters
-IDENTIFIER=1000_RGB_0-16-39
-N_PCS=1
+IDENTIFIER=50000_RGB_0-16-39
+N_PCS=10
 MODEL=resnet50
 LAYER=L4
 
@@ -28,8 +28,8 @@ BASE_NAME=$(basename ${PRETRAINING})
 MODEL_NAME=${BASE_NAME%.*}
 fi
 
-OUTPUT_DIR=./output/${IDENTIFIER}_${MODEL_NAME}
-# OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/${IDENTIFIER}_${MODEL_NAME}
+# OUTPUT_DIR=./output/${IDENTIFIER}_${MODEL_NAME}
+OUTPUT_DIR=/dhc/groups/mpws2022cl1/output/${IDENTIFIER}_${MODEL_NAME}_cov
 mkdir -p $OUTPUT_DIR
 
 # Feature condensation (Create embeddings)
