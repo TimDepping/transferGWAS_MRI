@@ -61,11 +61,6 @@ class MriData(Dataset):
         if self.tfms:
             img = self.tfms(img)
         return img, label
-    
-    # def get_original_img(self, idx):
-        # img, label = self._load_item(idx)
-        # print("class label: %s, img shape: %s" % (label, img.size))
-        # return img, label 
 
 
 '''
@@ -122,18 +117,15 @@ class RegressionMriData(MriData):
         )
 class TensorMriData(Dataset):
     def __init__(
-        self, img_dir, labels_path, tfms_type, subset=None, target_dtype=np.float32
+        self, img_dir, labels_path, tfms, subset=None, target_dtype=np.float32
     ):
         self.path_col = "image"
         self.label_col = LABEL_COL
         self.target_dtype = target_dtype
-        self.tfms = None
+        self.tfms = tfms
 
         df = pd.read_csv(labels_path)
-        if (tfms_type=="train"):
-            df.image = [join(img_dir, "train", str(p) + ".pt") for p in df.image]
-        else:
-            df.image = [join(img_dir, "valid", str(p) + ".pt") for p in df.image]
+        df.image = [join(img_dir, str(p) + ".pt") for p in df.image]
 
         self.df = df[:subset]
         if subset:
@@ -142,17 +134,43 @@ class TensorMriData(Dataset):
     def __len__(self):
         return len(self.df)
 
-    def __getitem__(self, idx):
+    def _tensor_to_img(self, tensor):
+        # Convert the tensor to a numpy array
+        arr = tensor.numpy()
+        arr = arr.astype('uint8')
+        # Convert the numpy array to a PIL image
+        img = Image.fromarray(arr)
+        return img
+
+    def _load_item(self, idx):
         if isinstance(idx, torch.Tensor):
             idx = idx.item()
 
         path = self.df.iloc[idx][self.path_col]
         label = self.df.iloc[idx][self.label_col].astype(self.target_dtype)
         
-        ## Transformation already took place in preprocessing. 
         tensor = torch.load(path)
 
-        return tensor, label
+        # Unstack the tensor along the first dimension to create a list of 50 tensors with shape (H, W)
+        unstacked_tensors = torch.unbind(tensor, dim=0)
+        
+        # Convert the list of tensors to a list of PIL images
+        imgs = [self._tensor_to_img(tensor) for tensor in unstacked_tensors]
+
+        # Apply the same transformation to all the images
+        transformed_tensors = [self.tfms(img) for img in imgs]
+
+        ## Get rid of the first dimension: [1,224,224] -> [224,224]
+        squeezed_tensors = [tensor.squeeze(0) for tensor in transformed_tensors]
+
+        # Stack all the transformed images back together to a create a 50 channel tensor
+        stacked_tensor = torch.stack(squeezed_tensors, dim=0)
+
+        return stacked_tensor, label
+
+    def __getitem__(self, idx):
+        img, label = self._load_item(idx)
+        return img, label
 
 '''
 Returns Transform Objects.
@@ -231,10 +249,10 @@ def build_mri_dataset(
     else:
         if mc:
             train_ds = TensorMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms_type="train", subset=subset
+                img_dir=img_dir, labels_path=labels_path, tfms=train_tfm, subset=subset
             )
             valid_ds = TensorMriData(
-                img_dir=img_dir, labels_path=labels_path, tfms_type="test", subset=subset
+                img_dir=img_dir, labels_path=labels_path, tfms=valid_tfm, subset=subset
             )
         else:
             train_ds = RegressionMriData(
