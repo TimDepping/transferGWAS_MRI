@@ -19,7 +19,6 @@ TRANSFORMATION_STD = [0.229, 0.224, 0.225]
 
 import debugpy
 
-
 def main():
     # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
     # debugpy.listen(5678)
@@ -180,13 +179,28 @@ def load_data_from_csv(fn, tfms='basic', img_size=448, base_img_dir=''):
     return dsets
 
 
-def get_tfms_basic(size=224):
-    '''only Resize and Normalize'''
+
+def get_tfms_basic(size=224, min_val=0, max_val=1):
+    '''Resize and Min-Max Scaling'''
+
+    class MinMaxScaling(object):
+
+        def percentile_scaling(tensor, lower_percentile=2, upper_percentile=98, min_val=0, max_val=1):
+            tensor = tensor.numpy()
+            lower_bound = np.percentile(tensor, lower_percentile)
+            upper_bound = np.percentile(tensor, upper_percentile)
+            tensor = (tensor - lower_bound) / (upper_bound - lower_bound)
+            tensor = tensor * (max_val - min_val) + min_val
+            tensor = transforms.ToTensor()(tensor)
+            return tensor
+
+        def __call__(self, tensor):
+            return self.min_max_scaling(tensor, min_val, max_val)
 
     tfms = transforms.Compose([
         transforms.Resize(size=size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=TRANSFORMATION_MEAN, std=TRANSFORMATION_STD),
+        MinMaxScaling(),
     ])
     return tfms
 
