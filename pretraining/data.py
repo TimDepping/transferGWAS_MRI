@@ -179,6 +179,19 @@ class TensorMriData(Dataset):
         tensorList = [transforms.ToTensor()(array) for array in npArrayList]
         ## normalize tensor
         normTensorList = [transforms.Normalize(mean=MEAN, std=STD)(tensor) for tensor in tensorList]
+        
+        ## @Laurin execute the following function instead of transforms.Normalize
+        # def percentile_scaling(tensor, lower_percentile=2, upper_percentile=98, min_val=0, max_val=1):
+        #     tensor = tensor.numpy()
+        #     lower_bound = np.percentile(tensor, lower_percentile)
+        #     upper_bound = np.percentile(tensor, upper_percentile)
+        #     tensor = (tensor - lower_bound) / (upper_bound - lower_bound)
+        #     tensor = tensor * (max_val - min_val) + min_val
+        #     tensor = transforms.ToTensor()(tensor)
+        #     return tensor
+        #
+        # normTensorList = [percentile_scaling(tensor) for tensor in tensorList]
+
 
         ## Get rid of the first dimension: [1,224,224] -> [224,224]
         squeezed_tensors = [tensor.squeeze(0) for tensor in normTensorList]
