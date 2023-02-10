@@ -60,6 +60,16 @@ class MriData(Dataset):
         self.tfms = tfms
         self.target_dtype = target_dtype
 
+    def percentile_scaling(tensor, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1):
+            array = tensor.numpy()
+            lower_bound = np.percentile(array, lower_percentile)
+            upper_bound = np.percentile(array, upper_percentile)
+            array = (array - lower_bound) / (upper_bound - lower_bound)
+            array = array * (max_val - min_val) + min_val
+            array = np.transpose(array, (1,2,0)) ## rearange shape off array to fit ToTensor (224,224,3) 
+            tensor = transforms.ToTensor()(array)
+            return tensor
+
     # Number of data samples in the dataset
     def __len__(self):
         return len(self.df)
@@ -80,6 +90,7 @@ class MriData(Dataset):
         img, label = self._load_item(idx)
         if self.tfms:
             img = self.tfms(img)
+            img = self.percentile_scaling(img)
         return img, label
 
 
@@ -113,6 +124,7 @@ class AutoMriData(MriData):
         img, _ = self._load_item(idx)
         if self.tfms:
             img = self.tfms(img)
+            img = self.percentile_scaling(img)
         return img, img
 
 '''
@@ -153,6 +165,14 @@ class TensorMriData(Dataset):
 
     def __len__(self):
         return len(self.df)
+    
+    def percentile_scaling_array(array, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1):
+            lower_bound = np.percentile(array, lower_percentile)
+            upper_bound = np.percentile(array, upper_percentile)
+            array = (array - lower_bound) / (upper_bound - lower_bound)
+            array = array * (max_val - min_val) + min_val
+            tensor = transforms.ToTensor()(array)
+            return tensor
 
     def _load_item(self, idx):
         if isinstance(idx, torch.Tensor):
@@ -173,30 +193,13 @@ class TensorMriData(Dataset):
         npArrayList = np.split(npArrays, 50, axis=0)
         ## 2) remove dimensions of size 1 infront of the array 1,1,224,244 -> 224,244
         npArrayList = np.squeeze(npArrayList)
-        ## add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
+        ## 3) add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
         npArrayList = [array[:, :, np.newaxis] for array in npArrayList]
-        ## 3) array to tensor
-        tensorList = [transforms.ToTensor()(array) for array in npArrayList]
-        ## normalize tensor
-        normTensorList = [transforms.Normalize(mean=MEAN, std=STD)(tensor) for tensor in tensorList]
-        
-        ## @Laurin execute the following function instead of transforms.Normalize
-        # def percentile_scaling(tensor, lower_percentile=2, upper_percentile=98, min_val=0, max_val=1):
-        #     tensor = tensor.numpy()
-        #     lower_bound = np.percentile(tensor, lower_percentile)
-        #     upper_bound = np.percentile(tensor, upper_percentile)
-        #     tensor = (tensor - lower_bound) / (upper_bound - lower_bound)
-        #     tensor = tensor * (max_val - min_val) + min_val
-        #     tensor = transforms.ToTensor()(tensor)
-        #     return tensor
-        #
-        # normTensorList = [percentile_scaling(tensor) for tensor in tensorList]
-
-
-        ## Get rid of the first dimension: [1,224,224] -> [224,224]
-        squeezed_tensors = [tensor.squeeze(0) for tensor in normTensorList]
-        
-        ## Stack all the transformed images back together to a create a 50 channel tensor
+        ## 4) scale tensor list + toTensor
+        scaledTensorList = [self.percentile_scaling_array(array) for array in npArrayList]
+        ## 5) Get rid of the first dimension: [1,224,224] -> [224,224]
+        squeezed_tensors = [tensor.squeeze(0) for tensor in scaledTensorList]
+        ## 6) Stack all the transformed images back together to a create a 50 channel tensor
         stacked_tensor = torch.stack(squeezed_tensors, dim=0)
 
         return stacked_tensor, label
@@ -211,8 +214,6 @@ Train: Random Rotation, Resizing, ColorJitter, Random Horizontal Flip, ToTensor 
 Test: Resizing, ToTensor (Scaling), Normalization
 '''
 def get_tfms(size=224, interpolation=Image.Resampling.BILINEAR, mc=False):
-    norm = transforms.Normalize(mean=MEAN, std=STD)
-
     ## Transformation for mc tensors is done in a batch. ToTensor and Norm does not work for batches
     ## and is therefore done after the augmentations.
     if mc:
@@ -239,11 +240,10 @@ def get_tfms(size=224, interpolation=Image.Resampling.BILINEAR, mc=False):
                 ),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.ToTensor(),
-                norm,
             ]
         )
         valid = transforms.Compose(
-            [transforms.Resize(size=size), transforms.ToTensor(), norm,]
+            [transforms.Resize(size=size), transforms.ToTensor()]
         )
 
 
