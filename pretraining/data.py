@@ -60,7 +60,7 @@ class MriData(Dataset):
         self.tfms = tfms
         self.target_dtype = target_dtype
 
-    def percentile_scaling(tensor, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1):
+    def percentile_scaling(self, tensor, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1):
             array = tensor.numpy()
             lower_bound = np.percentile(array, lower_percentile)
             upper_bound = np.percentile(array, upper_percentile)
@@ -90,7 +90,7 @@ class MriData(Dataset):
         img, label = self._load_item(idx)
         if self.tfms:
             img = self.tfms(img)
-            img = self.percentile_scaling(img)
+            img = self.percentile_scaling(img,0,98,0,1)
         return img, label
 
 
@@ -124,7 +124,7 @@ class AutoMriData(MriData):
         img, _ = self._load_item(idx)
         if self.tfms:
             img = self.tfms(img)
-            img = self.percentile_scaling(img)
+            img = self.percentile_scaling(img,0,98,0,1)
         return img, img
 
 '''
@@ -166,7 +166,7 @@ class TensorMriData(Dataset):
     def __len__(self):
         return len(self.df)
     
-    def percentile_scaling_array(array, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1):
+    def percentile_scaling_array(self, array, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1):
             lower_bound = np.percentile(array, lower_percentile)
             upper_bound = np.percentile(array, upper_percentile)
             array = (array - lower_bound) / (upper_bound - lower_bound)
@@ -196,7 +196,7 @@ class TensorMriData(Dataset):
         ## 3) add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
         npArrayList = [array[:, :, np.newaxis] for array in npArrayList]
         ## 4) scale tensor list + toTensor
-        scaledTensorList = [self.percentile_scaling_array(array) for array in npArrayList]
+        scaledTensorList = [self.percentile_scaling_array(array,0,98,0,1) for array in npArrayList]
         ## 5) Get rid of the first dimension: [1,224,224] -> [224,224]
         squeezed_tensors = [tensor.squeeze(0) for tensor in scaledTensorList]
         ## 6) Stack all the transformed images back together to a create a 50 channel tensor
