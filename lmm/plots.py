@@ -48,6 +48,7 @@ def mhat_plot(
         # show=True,
         dim=(0.95 * 25, 0.95 * 16),
         gwas_sign_line=True,
+        gwasp=5E-09,
         color=("#d7d1c9", "#696464"),
         # plot_extra='which_pc',
         ylm=ylm,
