@@ -185,17 +185,18 @@ def get_tfms_basic(size=224, min_val=0, max_val=1):
 
     class MinMaxScaling(object):
 
-        def percentile_scaling(tensor, lower_percentile=2, upper_percentile=98, min_val=0, max_val=1):
-            tensor = tensor.numpy()
-            lower_bound = np.percentile(tensor, lower_percentile)
-            upper_bound = np.percentile(tensor, upper_percentile)
-            tensor = (tensor - lower_bound) / (upper_bound - lower_bound)
-            tensor = tensor * (max_val - min_val) + min_val
-            tensor = transforms.ToTensor()(tensor)
+        def percentile_scaling(self, tensor, min_val=0, max_val=1, lower_percentile=0, upper_percentile=98):
+            array = tensor.numpy()
+            lower_bound = np.percentile(array, lower_percentile)
+            upper_bound = np.percentile(array, upper_percentile)
+            array = (array - lower_bound) / (upper_bound - lower_bound)
+            array = array * (max_val - min_val) + min_val
+            array = np.transpose(array, (1,2,0)) ## rearrange shape off array to fit ToTensor (224,224,3) 
+            tensor = transforms.ToTensor()(array)
             return tensor
 
         def __call__(self, tensor):
-            return self.min_max_scaling(tensor, min_val, max_val)
+            return self.percentile_scaling(tensor, min_val, max_val)
 
     tfms = transforms.Compose([
         transforms.Resize(size=size),
