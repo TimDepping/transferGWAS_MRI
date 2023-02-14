@@ -14,6 +14,7 @@ hostname -f
 OUTPUT_DIR=$1
 EMBEDDINGS_FILE=$2
 N_PCS=$3
+IN_PLINK_BUT_NOT_IMPUTED_FILE=$4
 
 eval "$(conda shell.bash hook)"
 conda activate transfer_gwas
@@ -47,6 +48,5 @@ python -u lmm/run_lmm.py \
 --bgen "${OUTPUT_DIR}/lmm/preprocessing_imp_output/chr{1:22}.bgen" \
 --sample "${OUTPUT_DIR}/lmm/preprocessing_imp_output/chr1.sample" \
 --out_dir "$OUTPUT_DIR/lmm/results" \
---threads $SLURM_JOB_CPUS_PER_NODE
-# Add 'remove' paramenter if there is an error regarding missing data e.g.
-# --remove "${OUTPUT_DIR}/lmm/preprocessing_imp_output/bolt.in_plink_but_not_imputed.FID_IID.80.txt"
+--threads $SLURM_JOB_CPUS_PER_NODE \
+--remove $IN_PLINK_BUT_NOT_IMPUTED_FILE
