@@ -67,7 +67,7 @@ class MriData(Dataset):
             array = (array - lower_bound) / (upper_bound - lower_bound)
             array = array * (max_val - min_val) + min_val
             array = np.transpose(array, (1,2,0)) ## rearange shape off array to fit ToTensor (224,224,3) 
-            tensor = transforms.ToTensor()(array)
+            tensor = transforms.ToTensor()(array).float()
             return tensor
 
     # Number of data samples in the dataset
@@ -171,7 +171,7 @@ class TensorMriData(Dataset):
             upper_bound = np.percentile(array, upper_percentile)
             array = (array - lower_bound) / (upper_bound - lower_bound)
             array = array * (max_val - min_val) + min_val
-            tensor = transforms.ToTensor()(array)
+            tensor = transforms.ToTensor()(array).float()
             return tensor
 
     def _load_item(self, idx):
