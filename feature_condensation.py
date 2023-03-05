@@ -11,6 +11,7 @@ from tqdm import tqdm
 from sklearn.decomposition import PCA
 
 import torch
+from torch import nn
 from torch.utils.data.dataset import Dataset
 from torchvision import transforms, models
 
@@ -56,7 +57,6 @@ def main():
     parser.add_argument('--dev', default='cuda:0', type=str, help='cuda device to use')
     parser.add_argument('--n_pcs', type=int, default=50, help='How many PCs to export')
     parser.add_argument('--num_threads', type=int, default=1, help='How many threads to use')
-    # TODO: Why do we allow resnet34?
     parser.add_argument(
         '--model',
         type=str,
@@ -81,6 +81,13 @@ def main():
              'or can name a specific module in the architecture such as `layer4.2.conv3`. '
              'Multiple layers can be specified and will be exported to corresponding files.',
     )
+    parser.add_argument(
+        "--use_mc",
+        dest="use_mc",
+        action="store_true",
+        default=False,
+        help="Change Dataset class to tensor input .pt (50 Channels) and adapt model to comply with new input shape. By default 3 Channel RGB images are handled.",
+    )
     args = parser.parse_args()
 
     dsets = load_data_from_csv(
@@ -88,11 +95,13 @@ def main():
         tfms=args.tfms,
         img_size=args.img_size,
         base_img_dir=args.base_img_dir,
+        use_mc=args.use_mc,
     )
     model = load_model(
         args.model,
         args.pretraining,
         args.dev,
+        args.use_mc,
     )
     layer_funcs = load_layers(
         args.model,
@@ -146,7 +155,7 @@ def main():
         )
 
 
-def load_data_from_csv(fn, tfms='basic', img_size=448, base_img_dir=''):
+def load_data_from_csv(fn, tfms='basic', img_size=448, base_img_dir='', use_mc=False):
     """Load csv into ImageData instance(s)"""
     dsets = []
 
@@ -155,27 +164,24 @@ def load_data_from_csv(fn, tfms='basic', img_size=448, base_img_dir=''):
     if base_img_dir:
         # Construct path with base_img_dir for each file if base_img_dir is provided.
         df.path = [join(base_img_dir, p) for p in df.path]
-    instance_grouping = 'instance'
-    if instance_grouping in df.columns:
-        # Column instance_grouping exists in df (in the csv file).
-        iid = np.unique(df.IID)
-        for _, sub_df in df.groupby(instance_grouping):
-            iid = np.intersect1d(iid, sub_df.IID)
-        # At this point, we only have unique iids of entries which are available in all groups.
-        for _, sub_df in df.groupby(instance_grouping):
-            sub_df.index = sub_df.IID
-            dset = ImageData(
-                sub_df.loc[iid],
-                tfms=tfms,
-                img_size=img_size
-            )
-            dsets.append(dset)
+
+    if use_mc:
+        dsets = [TensorData(df)]
     else:
-        dsets = [ImageData(
-            df,
-            tfms=tfms,
-            img_size=img_size
-        )]
+        instance_grouping = "instance"
+        if instance_grouping in df.columns:
+            # Column instance_grouping exists in df (in the csv file).
+            iid = np.unique(df.IID)
+            for _, sub_df in df.groupby(instance_grouping):
+                iid = np.intersect1d(iid, sub_df.IID)
+            # At this point, we only have unique iids of entries which are available in all groups.
+            for _, sub_df in df.groupby(instance_grouping):
+                sub_df.index = sub_df.IID
+                dset = ImageData(sub_df.loc[iid], tfms=tfms, img_size=img_size)
+                dsets.append(dset)
+        else:
+            dsets = [ImageData(df, tfms=tfms, img_size=img_size)]
+
     return dsets
 
 
@@ -233,7 +239,7 @@ def get_tfms_augmented(size=224):
     return tfm
 
 
-def load_model(model='resnet50', pretraining='imagenet', dev='cuda:0'):
+def load_model(model='resnet50', pretraining='imagenet', dev='cuda:0', use_mc=False):
     """Prepare model and load pretrained weights."""
     # Default model is a ResNet50.
     m_func = models.resnet50
@@ -244,7 +250,11 @@ def load_model(model='resnet50', pretraining='imagenet', dev='cuda:0'):
 
     model = m_func(pretrained=True)
     if pretraining != 'imagenet':
-        model.load_state_dict(torch.load(pretraining, map_location='cpu'))
+        if use_mc:
+            model.conv1 = nn.Conv2d(
+                50, 64, kernel_size=7, stride=2, padding=3, bias=False
+            )
+        model.load_state_dict(torch.load(pretraining, map_location="cpu"))
     return prep_model(model, dev)
 
 
@@ -410,5 +420,56 @@ class ImageData(Dataset):
         return img
 
 
-if __name__ == '__main__':
+class TensorData(Dataset):
+    '''! Not possible to change img size yet. No transformations, except minMaxScaling + ToTensor'''
+    def __init__(self, df):
+        self.ids = df.IID.values
+        self.path = df.path.values
+        self.img_size = 224
+
+    def percentile_scaling_array(
+        self, array, lower_percentile=0, upper_percentile=98, min_val=0, max_val=1
+    ):
+        lower_bound = np.percentile(array, lower_percentile)
+        upper_bound = np.percentile(array, upper_percentile)
+        array = (array - lower_bound) / (upper_bound - lower_bound)
+        array = array * (max_val - min_val) + min_val
+        tensor = transforms.ToTensor()(array).float()
+        return tensor
+
+    def __len__(self):
+        return len(self.ids)
+
+    def __getitem__(self, idx):
+        img = self._load_item(idx)
+        id = self.ids[idx]
+        return img, id
+
+    def _load_item(self, idx):
+        if isinstance(idx, torch.Tensor):
+            idx = idx.item()
+
+        mcTensor = torch.load(self.path[idx])
+
+        # ToTensor requires a numpy.ndarray (H x W x C)
+        ## 1) transform mcTensor to npArrayList (50x 1x1x224x224)
+        npArrays = mcTensor.numpy()
+        npArrayList = np.split(npArrays, 50, axis=0)
+        ## 2) remove dimensions of size 1 infront of the array 1,1,224,244 -> 224,244
+        npArrayList = np.squeeze(npArrayList)
+        ## 3) add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
+        npArrayList = [array[:, :, np.newaxis] for array in npArrayList]
+        ## 4) scale tensor list + toTensor
+        scaledTensorList = [
+            self.percentile_scaling_array(array, 0, 98, 0, 1) for array in npArrayList
+        ]
+        ## 5) Get rid of the first dimension: [1,224,224] -> [224,224]
+        squeezed_tensors = [tensor.squeeze(0) for tensor in scaledTensorList]
+        ## 6) Stack all the transformed images back together to a create a 50 channel tensor
+        stacked_tensor = torch.stack(squeezed_tensors, dim=0)
+
+        return stacked_tensor
+
+
+if __name__ == "__main__":
     main()
