@@ -18,8 +18,7 @@ import debugpy
 WANDB = True
 if WANDB:
     import wandb
-    # "3 Channel Images"
-    PROJECT_NAME = "Testing - mc models"
+    PROJECT_NAME = "3 Channel Images"
     ## Project_Notes: "x images / label / AE or _"
     PROJECT_NOTES = "x images / label / AE or _ "
     # RUN_NAME = "x_l_AE/_"
@@ -105,7 +104,6 @@ def main():
     configs = get_configs(
         img_dir=args.img_dir,
         labels_path=args.labels,
-        ## Change subset according to your needs
         # subset=38774,
         subset=None,
         size=args.size,
@@ -151,7 +149,6 @@ def get_configs(
     use_mc=False,
 ):
     configs = []
-
     # We create two configs, one for our regression task, one for our Autoencoder (AE).
     train_loader, valid_loader = build_mri_dataset(
         img_dir=img_dir,
@@ -266,7 +263,16 @@ def train(
                 f"updating model: last best loss: {best_loss:.3f}, new best loss: {valid_losses[0]:.3f}"
             )
             best_loss = valid_losses[0]
+
+            print("Storing model")
             torch.save(model.r.state_dict(), save_path)
+
+            ## Save the resnet model and our regression head.
+            torch.save({
+                'resnet_state_dict': model.r.state_dict(),
+                'head_state_dict': configs[0]['head'].state_dict()
+            }, "/dhc/groups/mpws2022cl1/models/ModelForEfPrediction.pt")
+
     return model, configs
 
 
