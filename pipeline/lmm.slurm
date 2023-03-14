@@ -34,8 +34,7 @@ python -u lmm/preprocessing_cov.py /dhc/projects/ukbiobank/original/phenotypes/u
 --output $OUTPUT_DIR/covariates.txt
 
 # Run LMM
-if $IN_PLINK_BUT_NOT_IMPUTED_FILE
-then
+if [ "$IN_PLINK_BUT_NOT_IMPUTED_FILE" ];then
 python -u lmm/run_lmm.py \
 --bed "$OUTPUT_DIR/lmm/preprocessing_ma_output/chr{1:22}.bed" \
 --bim "$OUTPUT_DIR/lmm/preprocessing_ma_output/chr{1:22}.bim" \

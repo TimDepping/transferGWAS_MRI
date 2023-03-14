@@ -18,9 +18,9 @@ INPUT_INDIV_FILE=$IMAGE_DIR.csv
 EXCLUDED_INDIV_FILE=/dhc/groups/mpws2022cl1/images/heart/png/excluded_indiv_2.csv
 
 # BOLT-LMM will fail on the first run because there are missing data in the bgen files and write a bolt.in_plink_but_not_imputed.FID_IID.X.txt (with X the number of missing data points).
-# Here we specify the path to the file. The file needs to be adapted if we change the images. If this file does not exist yet, set this variable to false.
+# Here we specify the path to the file. The file needs to be adapted if we change the images. If this file does not exist yet, set this variable to "".
 IN_PLINK_BUT_NOT_IMPUTED_FILE=/dhc/groups/mpws2022cl1/images/heart/png/bolt.in_plink_but_not_imputed.FID_IID.80.txt
-# IN_PLINK_BUT_NOT_IMPUTED_FILE=false
+# IN_PLINK_BUT_NOT_IMPUTED_FILE=""
 
 # If `imagenet`: load the default pytorch weights
 # else: specify path to `.pt` with state dict
@@ -49,7 +49,7 @@ feature_condensation=$($FEATURE_CONDENSATION_CMD)
 
 # Run LMM
 EMBEDDINGS_FILE=${OUTPUT_DIR}/${MODEL}_${MODEL_NAME}_$LAYER.txt
-LMM_CMD="sbatch --parsable --dependency=afterok:$feature_condensation --output=$LOG_DIR/lmm.log pipeline/lmm.slurm $OUTPUT_DIR $EMBEDDINGS_FILE $N_PCS $IN_PLINK_BUT_NOT_IMPUTED_FILE"
+LMM_CMD="sbatch --parsable --dependency=afterok:$feature_condensation --output=$LOG_DIR/lmm.log pipeline/lmm.slurm $OUTPUT_DIR $EMBEDDINGS_FILE $N_PCS \"$IN_PLINK_BUT_NOT_IMPUTED_FILE\""
 echo $LMM_CMD >> $PIPELINE_LOG
 lmm=$($LMM_CMD)
 
