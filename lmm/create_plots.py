@@ -21,9 +21,13 @@ def main():
         if os.path.isfile(f):
             name = os.path.splitext(os.path.basename(f))[0]
             print(f'Create plots for: {name}')
-            df = pd.read_csv(f, sep="\t")
-            qq_plot(df[pval_name], fn=f'{args.output_dir}/{name}_qq.png')
-            mhat_plot(df, pval_name, fn=f'{args.output_dir}/{name}_mhat')
+            try:
+                df = pd.read_csv(f, sep="\t")
+                qq_plot(df[pval_name], fn=f'{args.output_dir}/{name}_qq.png')
+                mhat_plot(df, pval_name, fn=f'{args.output_dir}/{name}_mhat')
+            except:
+                print(
+                    f'An exception occurred while creating the plot for: {name}')
 
 
 if __name__ == "__main__":
