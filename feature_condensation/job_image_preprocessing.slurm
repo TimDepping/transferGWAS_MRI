@@ -11,17 +11,17 @@
 date
 hostname -f
 
+# This script runs the image processing.
+
 NUMBER_OF_PATIENTS="3000"
 NAME="${NUMBER_OF_PATIENTS}_GRAY"
 
 echo $NAME
 
-cd /dhc/home/tim.depping/GitHub/master_project
 OUTPUT_DIR=/dhc/groups/mpws2022cl1/images/heart/png/$NAME
 OUTPUT_CSV=/dhc/groups/mpws2022cl1/images/heart/png/$NAME.csv
 
-python -u \
-/dhc/home/tim.depping/GitHub/master_project/image_preprocessing.py \
+python -u feature_condensation/image_preprocessing.py \
 --temp_dir ./.tmp_$NAME \
 --output_dir $OUTPUT_DIR \
 --number_of_patients $NUMBER_OF_PATIENTS \

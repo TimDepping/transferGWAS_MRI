@@ -1,6 +1,7 @@
-import os
 import pandas as pd
 import argparse
+
+# This script takes in two csv files, the indiv_csv and the exclude_csv, and removes rows that contain an IID from the exclude_csv and rows with the same IID from the indiv_csv.
 
 def main():
     parser = argparse.ArgumentParser()

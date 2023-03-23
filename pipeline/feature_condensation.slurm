@@ -27,11 +27,10 @@ CLEANED_INDIV_FILE=${OUTPUT_DIR}/cleaned_indiv.csv
 mkdir -p $OUTPUT_DIR
 
 # Clean individuals
-python -u input/scripts/clean_individuals.py $INPUT_INDIV_FILE $EXCLUDED_INDIV_FILE $CLEANED_INDIV_FILE
+python -u feature_condensation/clean_individuals.py $INPUT_INDIV_FILE $EXCLUDED_INDIV_FILE $CLEANED_INDIV_FILE
 
-if $USE_MC
-then
-python -u feature_condensation.py $CLEANED_INDIV_FILE $OUTPUT_DIR \
+if $USE_MC; then
+python -u feature_condensation/feature_condensation.py $CLEANED_INDIV_FILE $OUTPUT_DIR \
 --base_img_dir $IMAGE_DIR \
 --n_pcs $N_PCS \
 --model $MODEL \
@@ -39,7 +38,7 @@ python -u feature_condensation.py $CLEANED_INDIV_FILE $OUTPUT_DIR \
 --layer $LAYER \
 --use_mc
 else
-python -u feature_condensation.py $CLEANED_INDIV_FILE $OUTPUT_DIR \
+python -u feature_condensation/feature_condensation.py $CLEANED_INDIV_FILE $OUTPUT_DIR \
 --base_img_dir $IMAGE_DIR \
 --n_pcs $N_PCS \
 --model $MODEL \
