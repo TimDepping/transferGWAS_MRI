@@ -46,16 +46,16 @@ def main():
         pc_min = pc_df.nsmallest(args.n_extreme, columns=pc_column)
         pc_max = pc_df.nlargest(args.n_extreme, columns=pc_column)
         pc_extreme = pd.concat([pc_min, pc_max])
-        pc_output_dir = f'{args.output_dir}/{pc_column}'
-        os.makedirs(pc_output_dir, exist_ok=True)
+        # pc_output_dir = f'{args.output_dir}/{pc_column}'
+        # os.makedirs(pc_output_dir, exist_ok=True)
         for _, row in pc_extreme.iterrows():
             iid = str(int(row['IID']))
             pc_value = str(row[pc_column])
             extreme_values_df.loc[len(extreme_values_df)] = [
                 iid, pc_column, pc_value]
-            copy_image(iid=iid,
-                       source_dir="/dhc/groups/mpws2022cl1/images/heart/png/50000_RGB_0-16-39",
-                       output_dir=pc_output_dir)
+            # copy_image(iid=iid,
+            #            source_dir="/dhc/groups/mpws2022cl1/images/heart/png/50000_RGB_0-16-39",
+            #            output_dir=pc_output_dir)
     extreme_values_df.to_csv(f'{args.output_dir}/extreme_ids.csv', index=False)
 
 
