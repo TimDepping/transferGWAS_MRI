@@ -7,6 +7,11 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 
+'''
+This script calculates the mean and standard deviation of all input images that are used for training/feature condensation.
+The value is needed for the normalization of the input images.
+In our latest model we did not use normalization.
+'''
 class MriData(Dataset):
     def __init__(self, img_dir, tfms=None):
         self.tfms = tfms

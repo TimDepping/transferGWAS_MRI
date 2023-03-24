@@ -10,6 +10,12 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
+'''
+This script calculates the mean and standard deviation of all input images that are used for training/feature condensation.
+The value is needed for the normalization of the input images.
+In our latest model we did not use normalization.
+'''
+
 """ DataClass to feed DataLoader """
 class MriData(Dataset):
     # Constructor

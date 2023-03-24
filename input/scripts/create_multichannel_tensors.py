@@ -6,6 +6,10 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
+'''
+This script creates the multichannel tensors needed for the training_main.py script.
+One multichannel tensor stores all 50 greyscale images of one subject.
+'''
 def store_tensor(tensor, subject_id, out_dir):
     file_name = join(subject_id + '_CINE_segmented_LAX_4Ch_mc50.pt')
     file_path = join(out_dir, file_name)

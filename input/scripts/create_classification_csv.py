@@ -2,6 +2,11 @@ import argparse
 import os
 import pandas as pd
 
+'''
+This script creates the labels csv file needed for the training_main.py script. 
+It is a table of all the images (reference name) and their corresponding labels used for training.
+'''
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('img_dir', type=str, help='path to input images (png)')
