@@ -2,6 +2,9 @@ import argparse
 import pandas as pd
 import os
 
+'''
+This script filters for significant SNPs (output feature condensation) with a P-value < 5e-08. 
+'''
 # create the parser
 parser = argparse.ArgumentParser(description='Process imputed PC files.')
 
