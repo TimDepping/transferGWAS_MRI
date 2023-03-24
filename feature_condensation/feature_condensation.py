@@ -20,6 +20,9 @@ TRANSFORMATION_STD = [0.229, 0.224, 0.225]
 
 import debugpy
 
+'''
+This script to go from trained model to low-dimensional condensed features.
+'''
 def main():
     # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
     # debugpy.listen(5678)
