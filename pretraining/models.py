@@ -2,6 +2,9 @@ import torch
 from torch import nn
 from torchvision import models
 
+'''
+Handle model architecture for training.
+'''
 
 class ResNetFeatures(nn.Module):
     def __init__(self, resnet=50, mc=False):
@@ -36,15 +39,9 @@ class SpatialDecoder(nn.Module):
         self,
         d=512,
         features=[360, 240, 160, 80, 40],
-        ## First 50000 images 
+        ## Normalization for 50k RGB images (AE)
         mean = [0.1886, 0.1880, 0.1834],
         std = [0.1593, 0.1616, 0.1622],
-        # imagnet
-        # mean=[0.485, 0.456, 0.406],
-        # std=[0.229, 0.224, 0.225],
-        ## First 1000 images 
-        # mean = [0.1874, 0.1870, 0.1825],
-        # std = [0.1584, 0.1611, 0.1617],
         mode="bilinear",
     ):
         super().__init__()
