@@ -13,7 +13,7 @@ This repository provides the code we used to run our transferGWAS on UK Biobank 
 
 * **`pipeline`:** All you need to automatically run feature condensation, the LMM analysis and to create plots to visualize the results.
 
-* **`input/scripts`:** Some helper scripts to prepare and create inputs for training and feature condensation.
+* **`utils`:** Some helper scripts to prepare and create inputs for training and feature condensation.
 
 ## Getting started
 Start by cloning this repo:
