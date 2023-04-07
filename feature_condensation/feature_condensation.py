@@ -18,16 +18,13 @@ from torchvision import transforms, models
 TRANSFORMATION_MEAN = [0.485, 0.456, 0.406]
 TRANSFORMATION_STD = [0.229, 0.224, 0.225]
 
-import debugpy
 
 '''
 This script to go from trained model to low-dimensional condensed features.
 '''
+
+
 def main():
-    # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
-    # debugpy.listen(5678)
-    # print("Waiting for debugger attach")
-    # debugpy.wait_for_client()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -50,16 +47,20 @@ def main():
              'If specified, all paths in `img_csv` will be preprended by this')
     parser.add_argument('--save_str', type=str,
                         help='Optional name of file to save to. Needs to contain two `%s` substrings (for layer and explained variance).')
-    parser.add_argument('--img_size', type=int, default=448, help='Input image size')
+    parser.add_argument('--img_size', type=int,
+                        default=448, help='Input image size')
     parser.add_argument(
         '--tfms',
         type=str,
         default='basic',
         help='What kind of image transformations to use.',
     )
-    parser.add_argument('--dev', default='cuda:0', type=str, help='cuda device to use')
-    parser.add_argument('--n_pcs', type=int, default=50, help='How many PCs to export')
-    parser.add_argument('--num_threads', type=int, default=1, help='How many threads to use')
+    parser.add_argument('--dev', default='cuda:0',
+                        type=str, help='cuda device to use')
+    parser.add_argument('--n_pcs', type=int, default=50,
+                        help='How many PCs to export')
+    parser.add_argument('--num_threads', type=int, default=1,
+                        help='How many threads to use')
     parser.add_argument(
         '--model',
         type=str,
@@ -188,7 +189,6 @@ def load_data_from_csv(fn, tfms='basic', img_size=448, base_img_dir='', use_mc=F
     return dsets
 
 
-
 def get_tfms_basic(size=224, min_val=0, max_val=1):
     '''Resize and Min-Max Scaling'''
 
@@ -200,7 +200,8 @@ def get_tfms_basic(size=224, min_val=0, max_val=1):
             upper_bound = np.percentile(array, upper_percentile)
             array = (array - lower_bound) / (upper_bound - lower_bound)
             array = array * (max_val - min_val) + min_val
-            array = np.transpose(array, (1,2,0)) ## rearrange shape off array to fit ToTensor (224,224,3) 
+            # rearrange shape off array to fit ToTensor (224,224,3)
+            array = np.transpose(array, (1, 2, 0))
             tensor = transforms.ToTensor()(array)
             return tensor
 
@@ -293,7 +294,7 @@ def load_layers(model, layers):
         lf = LAYERS_RES18
     lfs = []
     for layer in layers:
-        layer_func = lambda m, l_str=layer: dict(m.named_modules())[l_str]
+        def layer_func(m, l_str=layer): return dict(m.named_modules())[l_str]
         if layer in ['L1', 'L2', 'L3', 'L4']:
             layer_func = lf[int(layer[1]) - 1]
         lfs.append(layer_func)
@@ -308,7 +309,7 @@ def compute_embeddings(
         num_threads=1,
 ):
     '''compute all embeddings in dset at layer_funcs in model
-    
+
     # Parameters:
     model (nn.Module): pretrained pytorch model
     layer_funcs (list of functions): each element is a function that takes model
@@ -324,7 +325,7 @@ def compute_embeddings(
         hook = layer_func(model).register_forward_hook(
             lambda m, i, o, idx=idx: output[idx].append(o.detach()))
         hooks.append(hook)
-    
+
     tmp_img = dset[0][0]
     if len(tmp_img.shape) == 3:
         tmp_img.unsqueeze_(0)
@@ -332,7 +333,8 @@ def compute_embeddings(
     _ = model(tmp_img.to(dev))
     shapes = [out[0].shape[1] * n_tfm for out in output]
     # TODO: Why clear output array items?
-    for i in range(len(output)): output[i] = []
+    for i in range(len(output)):
+        output[i] = []
 
     embeddings = [np.empty((len(dset), shape)) for shape in shapes]
     for sample_idx, (img, iid) in tqdm(enumerate(dset), total=len(dset)):
@@ -348,7 +350,8 @@ def compute_embeddings(
             else:
                 embedding = out[0].flatten()
             embeddings[layer_idx][sample_idx, :] = embedding.cpu().numpy()
-        for i in range(len(output)): output[i] = []
+        for i in range(len(output)):
+            output[i] = []
 
     # clean up model afterwards again
     for hook in hooks:
@@ -366,7 +369,8 @@ def join_embeddings(embeddings, dsets):
     '''
     all_ids = np.array([d.ids for d in dsets])
     # make sure all dsets have the same ids and ordering
-    assert np.all(np.repeat(np.expand_dims(all_ids[0], 0), len(dsets), axis=0) == all_ids)
+    assert np.all(np.repeat(np.expand_dims(
+        all_ids[0], 0), len(dsets), axis=0) == all_ids)
 
     out = []
     for i in range(len(embeddings[0])):
@@ -392,7 +396,8 @@ def to_file(
     data = pd.DataFrame(
         dict(
             [('FID', iid), ('IID', iid)] +
-            [(pheno_name % d, embeddings[:, d]) for d in range(embeddings.shape[1])]
+            [(pheno_name % d, embeddings[:, d])
+             for d in range(embeddings.shape[1])]
         )
     )
     data.to_csv(save_str, sep=' ', index=False, header=True)
@@ -403,7 +408,8 @@ class ImageData(Dataset):
         self.ids = df.IID.values
         self.path = df.path.values
         self.img_size = img_size
-        self.tfms = get_tfms_basic(img_size) if tfms == 'basic' else get_tfms_augmented(img_size)
+        self.tfms = get_tfms_basic(
+            img_size) if tfms == 'basic' else get_tfms_augmented(img_size)
 
     def __len__(self):
         return len(self.ids)
@@ -425,6 +431,7 @@ class ImageData(Dataset):
 
 class TensorData(Dataset):
     '''! Not possible to change img size yet. No transformations, except minMaxScaling + ToTensor'''
+
     def __init__(self, df):
         self.ids = df.IID.values
         self.path = df.path.values
@@ -455,20 +462,20 @@ class TensorData(Dataset):
         mcTensor = torch.load(self.path[idx])
 
         # ToTensor requires a numpy.ndarray (H x W x C)
-        ## 1) transform mcTensor to npArrayList (50x 1x1x224x224)
+        # 1) transform mcTensor to npArrayList (50x 1x1x224x224)
         npArrays = mcTensor.numpy()
         npArrayList = np.split(npArrays, 50, axis=0)
-        ## 2) remove dimensions of size 1 infront of the array 1,1,224,244 -> 224,244
+        # 2) remove dimensions of size 1 infront of the array 1,1,224,244 -> 224,244
         npArrayList = np.squeeze(npArrayList)
-        ## 3) add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
+        # 3) add dimentions of size 1 at the end of the array 224,244 -> 224,244,1
         npArrayList = [array[:, :, np.newaxis] for array in npArrayList]
-        ## 4) scale tensor list + toTensor
+        # 4) scale tensor list + toTensor
         scaledTensorList = [
             self.percentile_scaling_array(array, 0, 98, 0, 1) for array in npArrayList
         ]
-        ## 5) Get rid of the first dimension: [1,224,224] -> [224,224]
+        # 5) Get rid of the first dimension: [1,224,224] -> [224,224]
         squeezed_tensors = [tensor.squeeze(0) for tensor in scaledTensorList]
-        ## 6) Stack all the transformed images back together to a create a 50 channel tensor
+        # 6) Stack all the transformed images back together to a create a 50 channel tensor
         stacked_tensor = torch.stack(squeezed_tensors, dim=0)
 
         return stacked_tensor
