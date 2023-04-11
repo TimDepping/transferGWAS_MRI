@@ -8,10 +8,10 @@ TMP_DIR=$OUTPUT_DIR/.tmp
 
 # very soft filtering parameters:
 # minor allele frequency
-MAF=0.001 # 0.01
+MAF=0.001
 
 # Hardy-Weinberg p-value
-HWE_PVAL=0.001 # set down 10-6
+HWE_PVAL=0.001
 
 # LD-pruning, R^2, window-size & number of steps (see plink2 documentation for details)
 LD_THRESHOLD=0.8 # paires greater this value are pruned 
@@ -41,7 +41,6 @@ for i in {1..22}; do
 	# --make-bed: save the data in PLINK 1 binary format
 	plink2 --bfile ${INPUT} --keep ${INDIV} --hwe ${HWE_PVAL} --maf ${MAF} --make-bed --out ${TMPFILE}
 	# Linkage disequilibrium (LD) pruning
-	# TODO: Remove --bad-ld after testing
 
 	# LD pruning
 		# input = filtered plink files
