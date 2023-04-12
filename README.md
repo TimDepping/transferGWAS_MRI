@@ -20,7 +20,7 @@ This repository provides the code we used to run our transferGWAS on UK Biobank 
 ## Getting started
 Start by cloning this repo:
 ```bash
-git clone https://github.com/TimDepping/master_project
+git clone https://github.com/TimDepping/transferGWAS_MRI
 ```
 
 ### Python Environment
